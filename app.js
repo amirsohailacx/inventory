@@ -1236,3 +1236,139 @@ if (changeAvatarForm) {
         }
     });
 }
+
+// ========================================================
+// Drag-and-Drop Image Uploader & Compressor (Details Modal)
+// ========================================================
+const modalImageDropzone = document.getElementById('modal-image-dropzone');
+const modalImageInput = document.getElementById('modal-image-input');
+
+if (modalImageDropzone && modalImageInput) {
+    // Click to select file
+    modalImageDropzone.addEventListener('click', () => modalImageInput.click());
+    
+    modalImageInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleImageUpload(e.target.files[0]);
+    });
+
+    // Drag events
+    ['dragenter', 'dragover'].forEach(name => {
+        modalImageDropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            modalImageDropzone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+        modalImageDropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            modalImageDropzone.classList.remove('dragover');
+        });
+    });
+
+    modalImageDropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        
+        // Scenario 1: User dragged an image file from their computer
+        if (dt.files.length) {
+            handleImageUpload(dt.files[0]);
+        } 
+        // Scenario 2: User dragged an image URL / link from Google Images
+        else {
+            const url = dt.getData('text/plain');
+            if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/'))) {
+                saveProductImageUrl(url.trim());
+            }
+        }
+    });
+}
+
+// Helper to compress the image and upload to Google Sheets
+function handleImageUpload(file) {
+    if (!file.type.startsWith('image/')) {
+        showToast("Error: File must be an image.", "error");
+        return;
+    }
+    if (!activeProduct) return;
+
+    showToast("Processing image...", "info");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            // HTML5 Canvas compression to resize image to max 400px (tiny base64 string size!)
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 400;
+            const MAX_HEIGHT = 400;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Compress to JPEG with 0.75 quality
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+            saveProductImageUrl(compressedBase64);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Post the image link or Base64 string to Apps Script
+async function saveProductImageUrl(imageData) {
+    if (!googleScriptUrl) {
+        showToast("No database connection.", "error");
+        return;
+    }
+    if (!activeProduct) return;
+
+    const rowIndex = activeProduct.row_index;
+    showToast("Saving image to database...", "info");
+
+    try {
+        await fetch(googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_image',
+                row_index: rowIndex.toString(),
+                image_data: imageData
+            })
+        });
+
+        // Update local views
+        modalProductImage.src = imageData;
+        activeProduct["Image URL"] = imageData;
+        activeProduct["Images"] = imageData;
+        
+        // Sync cache
+        const localItem = inventoryData.find(item => item.row_index == rowIndex);
+        if (localItem) {
+            localItem["Image URL"] = imageData;
+            localItem["Images"] = imageData;
+        }
+
+        showToast("Image saved successfully!", "success");
+    } catch (err) {
+        showToast("Failed to save image.", "error");
+    }
+}

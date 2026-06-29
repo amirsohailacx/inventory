@@ -1,5 +1,5 @@
 /**
- * Google Apps Script for ACX Instruments Inventory Backend (Multi-Sheet Version)
+ * Google Apps Script for ACX Instruments Inventory Backend (Multi-Sheet Version + Base64 Image Uploads)
  * Paste this code into your Google Sheet's Extension -> Apps Script editor.
  * Deploy it as a Web App with access set to "Anyone".
  */
@@ -231,6 +231,15 @@ function doPost(e) {
       }
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Product successfully dispatched and stock adjusted!" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    else if (action === "update_image") {
+      var rowIndex = parseInt(params.row_index);
+      // Save Base64 image string or URL in Column 7 (Column G / Images)
+      inventorySheet.getRange(rowIndex, 7).setValue(params.image_data);
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Image updated successfully" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     

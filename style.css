@@ -1458,3 +1458,39 @@ body.light-theme .modal-left-panel {
     margin: 0.25rem 0;
 }
 
+/* ========================================================
+   Product Detail Modal Image Dropzone Overlay
+   ======================================================== */
+.image-overlay-prompt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(8, 12, 20, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: var(--transition);
+    color: white;
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+
+.modal-image-container:hover .image-overlay-prompt {
+    opacity: 1;
+}
+
+.modal-image-container.dragover {
+    border-color: var(--primary);
+    background-color: rgba(2, 132, 199, 0.15);
+}
+
+.modal-image-container.dragover .image-overlay-prompt {
+    opacity: 1;
+    color: var(--primary);
+}
+

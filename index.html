@@ -338,8 +338,13 @@
             <div class="modal-body-split">
                 <!-- Left Panel: Media and Core Details -->
                 <div class="modal-left-panel">
-                    <div class="modal-image-container">
+                    <div class="modal-image-container" id="modal-image-dropzone" style="position: relative; cursor: pointer;" title="Drag & drop image file or copy-paste URL here">
                         <img id="modal-product-image" src="" alt="Product Image" class="modal-product-image">
+                        <div class="image-overlay-prompt">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Drop / Click to upload</span>
+                        </div>
+                        <input type="file" id="modal-image-input" accept="image/*" style="display: none;">
                     </div>
                     <h2 id="modal-product-name">Product Name</h2>
                     <div class="modal-core-info">
@@ -472,6 +477,6 @@
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=14"></script>
 </body>
 </html>
