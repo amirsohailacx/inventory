@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Inventory Manager</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (Excel Parser) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <img src="logo.png" alt="ACX Instruments Logo" class="company-logo">
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-tab="dashboard-tab">
+                    <i class="fa-solid fa-chart-simple"></i> Dashboard
+                </button>
+                <button class="nav-btn" data-tab="add-item-tab">
+                    <i class="fa-solid fa-circle-plus"></i> Add Product
+                </button>
+                <button class="nav-btn" data-tab="import-tab">
+                    <i class="fa-solid fa-file-import"></i> Excel Import
+                </button>
+                <button class="nav-btn" data-tab="settings-tab">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
+            </nav>
+            <div class="theme-toggle-container">
+                <span class="theme-label"><i class="fa-solid fa-circle-half-stroke"></i> Dark Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="theme-switch" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="connection-status offline" id="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1 id="tab-title">Inventory Dashboard</h1>
+                <div class="user-profile">
+                    <span class="profile-info">
+                        <strong>Warehouse Manager</strong>
+                        <small>ACX Instruments Team</small>
+                    </span>
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                </div>
+            </header>
+
+            <!-- TAB 1: Dashboard -->
+            <section id="dashboard-tab" class="tab-content active">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-box"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Products</span>
+                            <span class="stat-value" id="stat-total-products">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Stock</span>
+                            <span class="stat-value" id="stat-total-stock">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card alert-card">
+                        <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Low Stock Items</span>
+                            <span class="stat-value" id="stat-low-stock">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Toolbar -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Search product, catalogue number, specs...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="filter-btn active" data-filter="all">All Items</button>
+                        <button class="filter-btn" data-filter="low">Low Stock</button>
+                        <button class="export-btn" id="export-btn" title="Export current list to CSV">
+                            <i class="fa-solid fa-file-export"></i> Export
+                        </button>
+                        <button class="refresh-btn" id="refresh-btn" title="Sync with Google Sheet">
+                            <i class="fa-solid fa-arrows-rotate"></i> Sync
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Setup Alert (if API URL is missing) -->
+                <div class="setup-alert-banner hidden" id="setup-alert-banner">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <div>
+                        <strong>Connection URL Missing:</strong> Please go to the <strong>Settings</strong> tab to connect your Google Sheet.
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="table-container">
+                    <table class="inventory-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable-header" data-sort="No." style="width: 50px;">No. <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Product Name">Product Name <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Packing Size">Packing Size <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Quantity" style="text-align: center; width: 140px;">Quantity <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Condition">Condition <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Customers">Customers <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Catalogue Number">Catalogue Number <i class="fa-solid fa-sort"></i></th>
+                                <th class="sortable-header" data-sort="Specs">Specs <i class="fa-solid fa-sort"></i></th>
+                                <th style="text-align: center; width: 80px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-tbody">
+                            <!-- Items populated dynamically -->
+                            <tr>
+                                <td colspan="9" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading inventory...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 2: Add Product -->
+            <section id="add-item-tab" class="tab-content">
+                <div class="form-container">
+                    <h2 class="section-title">Add New Product to Inventory</h2>
+                    <p class="section-desc">Fill in the fields below to add a new product. It will be added instantly to your Google Sheet.</p>
+                    <form id="add-product-form" class="inventory-form">
+                        <div class="form-group">
+                            <label for="new-product-name">Product Name <span class="required">*</span></label>
+                            <input type="text" id="new-product-name" required placeholder="e.g. Copper Pipe 15mm">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-packing-size">Packing Size</label>
+                            <input type="text" id="new-packing-size" placeholder="e.g. 1 Box, 5 Pcs">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-quantity">Quantity <span class="required">*</span></label>
+                            <input type="text" id="new-quantity" required placeholder="e.g. 50, 47 Pcs" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-condition">Condition</label>
+                            <input type="text" id="new-condition" placeholder="e.g. New/Packed, Used/Opened">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-customers">Customers</label>
+                            <input type="text" id="new-customers" placeholder="e.g. Stock, Oxford, Canada Group">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-catalogue-number">Catalogue Number</label>
+                            <input type="text" id="new-catalogue-number" placeholder="e.g. 0016FB2E6120170">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-specs">Specifications / Description</label>
+                            <textarea id="new-specs" rows="2" placeholder="e.g. 16K, 300 nm, 50 μm"></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn" id="add-submit-btn">
+                            <i class="fa-solid fa-plus"></i> Add Product
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 3: Excel Import -->
+            <section id="import-tab" class="tab-content">
+                <div class="import-container">
+                    <h2 class="section-title">Bulk Import Inventory from Excel</h2>
+                    <p class="section-desc">Drop your Excel sheet here. You can match the columns to import your warehouse inventory list directly.</p>
+                    
+                    <div class="drop-zone" id="drop-zone">
+                        <i class="fa-solid fa-file-excel drop-icon"></i>
+                        <p>Drag & drop your Excel file (.xlsx or .xls) here or <span>browse files</span></p>
+                        <input type="file" id="file-input" accept=".xlsx, .xls" hidden>
+                    </div>
+
+                    <div id="import-preview-section" class="hidden">
+                        <div class="preview-header">
+                            <h3>File Preview & Mapping</h3>
+                            <button class="btn btn-secondary" id="cancel-import-btn">Cancel</button>
+                        </div>
+                        <p class="mapping-instruction">Match the columns from your Excel file to the inventory columns below:</p>
+                        <div class="mapping-grid">
+                            <div class="mapping-card">
+                                <label>Product Name</label>
+                                <select id="map-name" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Packing Size</label>
+                                <select id="map-packing-size" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Quantity</label>
+                                <select id="map-quantity" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Condition</label>
+                                <select id="map-condition" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Customers</label>
+                                <select id="map-customers" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Catalogue Number</label>
+                                <select id="map-catalogue" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Specs / Description</label>
+                                <select id="map-specs" class="map-select"></select>
+                            </div>
+                        </div>
+
+                        <div class="preview-actions">
+                            <button class="submit-btn" id="confirm-import-btn">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Import <span id="import-count-badge">0</span> Items
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: Settings -->
+            <section id="settings-tab" class="tab-content">
+                <div class="settings-container">
+                    <h2 class="section-title">System Settings</h2>
+                    <p class="section-desc">Connect this web app to your shared Google Sheet database.</p>
+                    
+                    <div class="settings-card">
+                        <h3>1. Connect Google Sheet API</h3>
+                        <p class="settings-help">Enter the Web App URL generated from the Google Apps Script. This connects your dashboard to the central spreadsheet database.</p>
+                        <div class="form-group">
+                            <label for="settings-api-url">Google Apps Script Web App URL</label>
+                            <input type="url" id="settings-api-url" placeholder="https://script.google.com/macros/s/.../exec">
+                        </div>
+                        <button class="submit-btn" id="save-settings-btn">
+                            <i class="fa-solid fa-floppy-disk"></i> Save & Connect
+                        </button>
+                    </div>
+
+                    <div class="settings-card instructions">
+                        <h3><i class="fa-solid fa-book"></i> Setup Guide for the Warehouse Owner</h3>
+                        <ol class="setup-steps">
+                            <li>Create a new <strong>Google Sheet</strong>.</li>
+                            <li>Add these 4 column headers in the first row (Row 1):
+                                <ul>
+                                    <li><code>Product Name</code> (Column A)</li>
+                                    <li><code>Catalogue Number</code> (Column B)</li>
+                                    <li><code>Specs</code> (Column C)</li>
+                                    <li><code>Quantity</code> (Column D)</li>
+                                </ul>
+                            </li>
+                            <li>Go to <strong>Extensions</strong> -> <strong>Apps Script</strong>.</li>
+                            <li>Delete any code in the editor, and paste the code from <code>google_apps_script.js</code> (found in this project's folder).</li>
+                            <li>Click the <strong>Save</strong> icon.</li>
+                            <li>Click the <strong>Deploy</strong> button (top right) -> Select <strong>New Deployment</strong>.</li>
+                            <li>Select type: <strong>Web App</strong> (click the gear icon to set type if needed).</li>
+                            <li>Change description to: "Inventory API".</li>
+                            <li>Set <strong>Execute as:</strong> "Me (your-email)".</li>
+                            <li>Set <strong>Who has access:</strong> "Anyone".</li>
+                            <li>Click <strong>Deploy</strong>. Authorize the script if prompted.</li>
+                            <li>Copy the <strong>Web app URL</strong> shown, paste it in the field above, and click <strong>Save & Connect</strong>!</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
