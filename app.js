@@ -911,7 +911,7 @@ function openProductModal(item) {
     modalSpecsText.textContent = item["Specs"] || 'No specifications provided for this product.';
     
     // Set Product Image (loads fallback if empty)
-    const imageUrl = item["Image URL"] || '';
+    const imageUrl = item["Image URL"] || item["Images"] || '';
     if (imageUrl) {
         modalProductImage.src = imageUrl;
     } else {
