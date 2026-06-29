@@ -78,12 +78,13 @@
                         <strong>Warehouse Manager</strong>
                         <small>ACX Instruments Team</small>
                     </span>
-                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="avatar" id="profile-avatar-container"><i class="fa-solid fa-user"></i></div>
                     
                     <!-- Profile Dropdown -->
                     <div id="profile-dropdown" class="profile-dropdown hidden">
                         <a href="https://docs.google.com/spreadsheets" target="_blank" id="sheet-dropdown-link"><i class="fa-solid fa-table"></i> View Google Sheet</a>
                         <a href="#" id="change-password-dropdown-btn"><i class="fa-solid fa-key"></i> Change Password</a>
+                        <a href="#" id="change-avatar-dropdown-btn"><i class="fa-solid fa-image"></i> Change Avatar</a>
                         <div class="dropdown-divider"></div>
                         <a href="#" id="logout-dropdown-btn" class="logout-link"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
                     </div>
@@ -448,9 +449,29 @@
         </div>
     </div>
 
+    <!-- Change Avatar Modal -->
+    <div id="change-avatar-modal" class="detail-modal-overlay hidden">
+        <div class="detail-modal-card" style="max-width: 400px; height: auto; max-height: 400px; padding: 2rem; border-radius: var(--radius-md);">
+            <button class="close-modal-btn" id="close-avatar-modal-btn" style="top: 0.5rem; right: 0.75rem;">&times;</button>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;"><i class="fa-solid fa-image"></i> Change Profile Picture</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.4;">
+                Paste a direct image URL (e.g. from Postimages) to update your profile icon.
+            </p>
+            <form id="change-avatar-form" class="inventory-form">
+                <div class="form-group">
+                    <label for="new-avatar-url">Avatar Image URL</label>
+                    <input type="url" id="new-avatar-url" required placeholder="https://example.com/avatar.png">
+                </div>
+                <button type="submit" class="submit-btn" id="avatar-submit-btn">
+                    <i class="fa-solid fa-check"></i> Update Photo
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 </body>
 </html>

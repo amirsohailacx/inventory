@@ -1170,3 +1170,69 @@ if (changePasswordForm) {
         }
     });
 }
+
+// ========================================================
+// Change Profile Avatar Controllers
+// ========================================================
+const changeAvatarDropdownBtn = document.getElementById('change-avatar-dropdown-btn');
+const changeAvatarModal = document.getElementById('change-avatar-modal');
+const closeAvatarModalBtn = document.getElementById('close-avatar-modal-btn');
+const changeAvatarForm = document.getElementById('change-avatar-form');
+const avatarSubmitBtn = document.getElementById('avatar-submit-btn');
+
+function updateProfileAvatar() {
+    const avatarContainer = document.getElementById('profile-avatar-container');
+    if (!avatarContainer) return;
+    
+    const savedAvatar = localStorage.getItem('profile_avatar_url');
+    if (savedAvatar) {
+        avatarContainer.innerHTML = `<img src="${escapeHtml(savedAvatar)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    } else {
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+    }
+}
+
+// Update avatar on script execution startup
+updateProfileAvatar();
+
+// Open Change Avatar Modal
+if (changeAvatarDropdownBtn && changeAvatarModal && changeAvatarForm) {
+    changeAvatarDropdownBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        profileDropdown.classList.add('hidden');
+        changeAvatarForm.reset();
+        changeAvatarModal.classList.remove('hidden');
+    });
+}
+
+// Close Avatar Modal
+if (closeAvatarModalBtn && changeAvatarModal) {
+    closeAvatarModalBtn.addEventListener('click', () => {
+        changeAvatarModal.classList.add('hidden');
+    });
+}
+
+// Click outside avatar modal card to close
+if (changeAvatarModal) {
+    changeAvatarModal.addEventListener('click', (e) => {
+        if (e.target === changeAvatarModal) {
+            changeAvatarModal.classList.add('hidden');
+        }
+    });
+}
+
+// Form Submission Event
+if (changeAvatarForm) {
+    changeAvatarForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const url = document.getElementById('new-avatar-url').value.trim();
+        if (url) {
+            localStorage.setItem('profile_avatar_url', url);
+            updateProfileAvatar();
+            showToast("Profile avatar updated successfully!", "success");
+            changeAvatarModal.classList.add('hidden');
+        }
+    });
+}
