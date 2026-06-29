@@ -1279,8 +1279,8 @@ function handleAvatarFileUpload(file) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, 120, 120);
 
-            // Compress to JPEG with 0.8 quality
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            // Export to PNG to preserve transparency (prevent black background)
+            const compressedBase64 = canvas.toDataURL('image/png');
             localStorage.setItem('profile_avatar_url', compressedBase64);
             updateProfileAvatar();
             showToast("Profile avatar updated successfully!", "success");
