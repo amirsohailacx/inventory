@@ -912,7 +912,17 @@ function openProductModal(item) {
     modalSpecsText.textContent = item["Specs"] || 'No specifications provided for this product.';
     
     // Set Product Image (loads fallback if empty or invalid URL)
-    const imageUrl = (item["Image URL"] || item["Images"] || '').toString().trim();
+    let imageUrl = (item["Image URL"] || item["Images"] || '').toString().trim();
+    
+    // Auto-convert Google Drive sharing links to direct image source URLs
+    if (imageUrl.includes('drive.google.com')) {
+        const driveMatch = imageUrl.match(/\bhttps:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=)([^/]+)/);
+        if (driveMatch) {
+            const fileId = driveMatch[1].split(/[?&]/)[0];
+            imageUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
+    }
+
     if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/'))) {
         modalProductImage.src = imageUrl;
     } else {
