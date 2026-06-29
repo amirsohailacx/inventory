@@ -379,7 +379,7 @@ function renderTable(items) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
-            <td><strong>${escapeHtml(item["Product Name"] || '')}</strong></td>
+            <td>${escapeHtml(item["Product Name"] || '')}</td>
             <td style="text-align: center;">
                 <div class="quantity-control">
                     <button class="qty-btn dec-btn" data-row="${item.row_index}" data-raw-qty="${rawQty}"><i class="fa-solid fa-minus"></i></button>
