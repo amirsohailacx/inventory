@@ -73,12 +73,20 @@
         <main class="main-content">
             <header class="top-header">
                 <h1 id="tab-title">Inventory Dashboard</h1>
-                <div class="user-profile">
+                <div class="user-profile" id="user-profile-btn" style="position: relative;">
                     <span class="profile-info">
                         <strong>Warehouse Manager</strong>
                         <small>ACX Instruments Team</small>
                     </span>
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    
+                    <!-- Profile Dropdown -->
+                    <div id="profile-dropdown" class="profile-dropdown hidden">
+                        <a href="https://docs.google.com/spreadsheets" target="_blank" id="sheet-dropdown-link"><i class="fa-solid fa-table"></i> View Google Sheet</a>
+                        <a href="#" id="change-password-dropdown-btn"><i class="fa-solid fa-key"></i> Change Password</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" id="logout-dropdown-btn" class="logout-link"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+                    </div>
                 </div>
             </header>
 
@@ -416,9 +424,33 @@
         </div>
     </div>
 
+    <!-- Change Password Modal -->
+    <div id="change-password-modal" class="detail-modal-overlay hidden">
+        <div class="detail-modal-card" style="max-width: 400px; height: auto; max-height: 480px; padding: 2rem; border-radius: var(--radius-md);">
+            <button class="close-modal-btn" id="close-change-pass-modal-btn" style="top: 0.5rem; right: 0.75rem;">&times;</button>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;"><i class="fa-solid fa-key"></i> Change Dashboard Password</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.4;">
+                Specify a new password below to update access credentials for this browser.
+            </p>
+            <form id="change-password-form" class="inventory-form">
+                <div class="form-group">
+                    <label for="new-pass-val">New Password</label>
+                    <input type="password" id="new-pass-val" required placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label for="new-pass-confirm">Confirm New Password</label>
+                    <input type="password" id="new-pass-confirm" required placeholder="Confirm new password">
+                </div>
+                <button type="submit" class="submit-btn" id="change-pass-submit-btn">
+                    <i class="fa-solid fa-check"></i> Update Password
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=11"></script>
+    <script src="app.js?v=12"></script>
 </body>
 </html>

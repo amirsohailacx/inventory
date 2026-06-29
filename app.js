@@ -95,8 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const passwordInput = document.getElementById('login-password');
             const hashedInput = await sha256(passwordInput.value);
+            const targetHash = localStorage.getItem('dashboard_password_hash') || CORRECT_PASSWORD_HASH;
             
-            if (hashedInput === CORRECT_PASSWORD_HASH) {
+            if (hashedInput === targetHash) {
                 sessionStorage.setItem('authenticated', 'true');
                 loginError.classList.add('hidden');
                 unlockDashboard();
@@ -1051,5 +1052,109 @@ dispatchForm.addEventListener('submit', async (e) => {
     } finally {
         dispatchSubmitBtn.disabled = false;
         dispatchSubmitBtn.innerHTML = '<i class="fa-solid fa-truck"></i> Ship & Subtract Stock';
+    }
+});
+
+// ========================================================
+// User Profile Dropdown & Password Management
+// ========================================================
+const userProfileBtn = document.getElementById('user-profile-btn');
+const profileDropdown = document.getElementById('profile-dropdown');
+const sheetDropdownLink = document.getElementById('sheet-dropdown-link');
+const changePasswordDropdownBtn = document.getElementById('change-password-dropdown-btn');
+const logoutDropdownBtn = document.getElementById('logout-dropdown-btn');
+
+// Change Password Modal DOM Elements
+const changePasswordModal = document.getElementById('change-password-modal');
+const closeChangePassModalBtn = document.getElementById('close-change-pass-modal-btn');
+const changePasswordForm = document.getElementById('change-password-form');
+const changePassSubmitBtn = document.getElementById('change-pass-submit-btn');
+
+// Toggle Profile Dropdown Menu
+userProfileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileDropdown.classList.toggle('hidden');
+});
+
+// Click anywhere else to close profile dropdown
+document.addEventListener('click', () => {
+    profileDropdown.classList.add('hidden');
+});
+
+// Sheet Dropdown Link Setup
+if (googleScriptUrl) {
+    // Attempt to extract the spreadsheet view URL from Web App URL or link to docs
+    const sheetIdMatch = googleScriptUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (sheetIdMatch) {
+        sheetDropdownLink.href = `https://docs.google.com/spreadsheets/d/${sheetIdMatch[1]}`;
+    } else {
+        // Fallback: search sheets
+        sheetDropdownLink.href = "https://docs.google.com/spreadsheets";
+    }
+}
+
+// Sign Out Handler
+logoutDropdownBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (confirm("Are you sure you want to log out from the ACX Instruments dashboard?")) {
+        sessionStorage.removeItem('authenticated');
+        showToast("Logged out successfully.", "success");
+        // Reload page to show login gate
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+});
+
+// Change Password Modal Trigger
+changePasswordDropdownBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    profileDropdown.classList.add('hidden');
+    changePasswordForm.reset();
+    changePasswordModal.classList.remove('hidden');
+});
+
+// Close Change Password Modal
+closeChangePassModalBtn.addEventListener('click', () => {
+    changePasswordModal.classList.add('hidden');
+});
+
+// Click outside change password modal card to close
+changePasswordModal.addEventListener('click', (e) => {
+    if (e.target === changePasswordModal) {
+        changePasswordModal.classList.add('hidden');
+    }
+});
+
+// Change Password Submission Form Handler
+changePasswordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const newVal = document.getElementById('new-pass-val').value;
+    const confirmVal = document.getElementById('new-pass-confirm').value;
+    
+    if (newVal !== confirmVal) {
+        showToast("Passwords do not match! Please verify.", "error");
+        return;
+    }
+    
+    changePassSubmitBtn.disabled = true;
+    changePassSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Password...';
+    
+    try {
+        // Compute SHA-256 hash of new password and save to browser storage
+        const newHash = await sha256(newVal);
+        localStorage.setItem('dashboard_password_hash', newHash);
+        
+        showToast("Password updated successfully on this browser!", "success");
+        changePasswordModal.classList.add('hidden');
+    } catch (err) {
+        showToast("Failed to change password.", "error");
+    } finally {
+        changePassSubmitBtn.disabled = false;
+        changePassSubmitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Update Password';
     }
 });
