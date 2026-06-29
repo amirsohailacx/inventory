@@ -1186,7 +1186,7 @@ function updateProfileAvatar() {
     
     const savedAvatar = localStorage.getItem('profile_avatar_url');
     if (savedAvatar) {
-        avatarContainer.innerHTML = `<img src="${escapeHtml(savedAvatar)}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%; background-color: #ffffff; padding: 2px;">`;
+        avatarContainer.innerHTML = `<img src="${escapeHtml(savedAvatar)}" alt="Profile Logo">`;
     } else {
         avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
     }
