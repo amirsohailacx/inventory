@@ -82,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Handle login submission
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
+        const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+        const forgotPasswordStatus = document.getElementById('forgot-password-status');
         
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -96,6 +98,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginError.classList.remove('hidden');
                 passwordInput.value = '';
                 passwordInput.focus();
+            }
+        });
+
+        forgotPasswordBtn.addEventListener('click', async () => {
+            if (!googleScriptUrl) {
+                forgotPasswordStatus.className = 'forgot-password-status error';
+                forgotPasswordStatus.textContent = '❌ Connection error: Database URL not set.';
+                forgotPasswordStatus.classList.remove('hidden');
+                return;
+            }
+
+            forgotPasswordBtn.disabled = true;
+            forgotPasswordStatus.className = 'forgot-password-status';
+            forgotPasswordStatus.textContent = 'Sending recovery email...';
+            forgotPasswordStatus.classList.remove('hidden');
+
+            try {
+                // Post forgot password request to Apps Script
+                await fetch(googleScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'forgot_password' })
+                });
+
+                forgotPasswordStatus.className = 'forgot-password-status success';
+                forgotPasswordStatus.textContent = '📨 The password has been emailed to the Google account owner!';
+            } catch (err) {
+                forgotPasswordStatus.className = 'forgot-password-status error';
+                forgotPasswordStatus.textContent = '❌ Failed to send request. Check your connection.';
+            } finally {
+                forgotPasswordBtn.disabled = false;
             }
         });
     }

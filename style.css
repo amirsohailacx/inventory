@@ -1156,3 +1156,34 @@ body.light-theme .detail-row {
     font-weight: 600;
 }
 
+.forgot-password-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-top: 1.25rem;
+    text-decoration: underline;
+    transition: var(--transition);
+    display: inline-block;
+}
+
+.forgot-password-btn:hover {
+    color: var(--primary);
+}
+
+.forgot-password-status {
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.forgot-password-status.success {
+    color: var(--success);
+}
+
+.forgot-password-status.error {
+    color: var(--danger);
+}
+

@@ -1,5 +1,5 @@
 /**
- * Google Apps Script for Inventory Management Backend (6-Column + Email Alerts)
+ * Google Apps Script for Inventory Management Backend (6-Column + Email Alerts + Password Recovery)
  * Paste this code into your Google Sheet's Extension -> Apps Script editor.
  * Deploy it as a Web App with access set to "Anyone".
  */
@@ -125,6 +125,23 @@ function doPost(e) {
       }
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Bulk import complete. Imported " + items.length + " items." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    else if (action === "forgot_password") {
+      var recipient = Session.getActiveUser().getEmail() || SpreadsheetApp.getActiveSpreadsheet().getOwner().getEmail();
+      if (recipient) {
+        var subject = "🔑 ACX Instruments Dashboard Password Recovery";
+        var body = "Dear Administrator,\n\n" +
+                   "A password recovery request was triggered from your ACX Instruments Inventory Dashboard.\n\n" +
+                   "• The current dashboard password is: ACXcam2026\n\n" +
+                   "If you did not request this, please review your dashboard security settings.\n\n" +
+                   "Best regards,\n" +
+                   "ACX Instruments Inventory System";
+        MailApp.sendEmail(recipient, subject, body);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Password recovery email sent" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
