@@ -911,9 +911,9 @@ function openProductModal(item) {
     modalArrivalDate.textContent = formatDate(item["Arrival Date"]);
     modalSpecsText.textContent = item["Specs"] || 'No specifications provided for this product.';
     
-    // Set Product Image (loads fallback if empty)
-    const imageUrl = item["Image URL"] || item["Images"] || '';
-    if (imageUrl) {
+    // Set Product Image (loads fallback if empty or invalid URL)
+    const imageUrl = (item["Image URL"] || item["Images"] || '').toString().trim();
+    if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/'))) {
         modalProductImage.src = imageUrl;
     } else {
         // Safe, clean abstract blueprint drawing SVG placeholder (base64 encoded)
