@@ -370,11 +370,33 @@ function renderTable(items) {
         const qtyNum = parseInt(rawQty) || 0;
         const isLow = qtyNum < 10;
         
+        // Define Packing Size pill
+        const packingSizeVal = item["Packing Size"] || '';
+        const packingSizeBadge = packingSizeVal ? `<span class="badge badge-packing">${escapeHtml(packingSizeVal)}</span>` : '';
+        
+        // Define Condition pill
+        const conditionVal = item["Condition"] || '';
+        let conditionBadge = '';
+        if (conditionVal) {
+            const condLower = conditionVal.toLowerCase();
+            if (condLower.includes('new') || condLower.includes('pack')) {
+                conditionBadge = `<span class="badge badge-condition-new">${escapeHtml(conditionVal)}</span>`;
+            } else if (condLower.includes('used') || condLower.includes('open')) {
+                conditionBadge = `<span class="badge badge-condition-used">${escapeHtml(conditionVal)}</span>`;
+            } else {
+                conditionBadge = `<span class="badge badge-packing">${escapeHtml(conditionVal)}</span>`;
+            }
+        }
+        
+        // Define Customer pill
+        const customerVal = item["Customers"] || '';
+        const customerBadge = customerVal ? `<span class="badge badge-customer">${escapeHtml(customerVal)}</span>` : '';
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><small style="color: var(--text-muted);">${escapeHtml(item["No."] || '')}</small></td>
+            <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
             <td><strong>${escapeHtml(item["Product Name"] || '')}</strong></td>
-            <td><small>${escapeHtml(item["Packing Size"] || '')}</small></td>
+            <td>${packingSizeBadge}</td>
             <td style="text-align: center;">
                 <div class="quantity-control">
                     <button class="qty-btn dec-btn" data-row="${item.row_index}" data-raw-qty="${rawQty}"><i class="fa-solid fa-minus"></i></button>
@@ -382,8 +404,8 @@ function renderTable(items) {
                     <button class="qty-btn inc-btn" data-row="${item.row_index}" data-raw-qty="${rawQty}"><i class="fa-solid fa-plus"></i></button>
                 </div>
             </td>
-            <td><small>${escapeHtml(item["Condition"] || '')}</small></td>
-            <td><small>${escapeHtml(item["Customers"] || '')}</small></td>
+            <td>${conditionBadge}</td>
+            <td>${customerBadge}</td>
             <td><code>${escapeHtml(item["Catalogue Number"] || '')}</code></td>
             <td><small style="color: var(--text-secondary);">${escapeHtml(item["Specs"] || '')}</small></td>
             <td style="text-align: center;">
