@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS (Excel Parser) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
     <div class="app-container">
@@ -119,13 +119,13 @@
                     <table class="inventory-table">
                         <thead>
                             <tr>
-                                <th class="sortable-header" data-sort="No." style="width: 50px;">No. <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable-header" data-sort="Product Name">Product Name <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable-header" data-sort="Quantity" style="text-align: center; width: 140px;">Quantity <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable-header" data-sort="Condition">Condition <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable-header" data-sort="Catalogue Number">Catalogue Number <i class="fa-solid fa-sort"></i></th>
-                                <th class="sortable-header" data-sort="Specs">Specs <i class="fa-solid fa-sort"></i></th>
-                                <th style="text-align: center; width: 80px;">Actions</th>
+                                <th class="sortable-header" data-sort="No."><div class="th-content">No. <i class="fa-solid fa-sort"></i></div></th>
+                                <th class="sortable-header" data-sort="Product Name"><div class="th-content">Product Name <i class="fa-solid fa-sort"></i></div></th>
+                                <th class="sortable-header" data-sort="Quantity"><div class="th-content center">Quantity <i class="fa-solid fa-sort"></i></div></th>
+                                <th class="sortable-header" data-sort="Condition"><div class="th-content">Condition <i class="fa-solid fa-sort"></i></div></th>
+                                <th class="sortable-header" data-sort="Catalogue Number"><div class="th-content">Catalogue Number <i class="fa-solid fa-sort"></i></div></th>
+                                <th class="sortable-header" data-sort="Specs"><div class="th-content">Specs <i class="fa-solid fa-sort"></i></div></th>
+                                <th><div class="th-content center">Actions</div></th>
                             </tr>
                         </thead>
                         <tbody id="inventory-tbody">

@@ -508,19 +508,30 @@ input:checked + .slider:before {
 .inventory-table th {
     background-color: #0284c7 !important; /* Premium Sky Blue Band */
     color: #ffffff !important;           /* High-contrast white text */
-    padding: 1.1rem 1.25rem;
+    padding: 0.85rem 1.25rem;
     font-size: 0.82rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.75px;
     border-bottom: 2px solid rgba(0, 0, 0, 0.15);
-    white-space: nowrap;                 /* Prevent sort arrows from wrapping below text */
     vertical-align: middle;
 }
 
 body.light-theme .inventory-table th {
     background-color: #0284c7 !important;
     color: #ffffff !important;
+}
+
+.th-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.th-content.center {
+    justify-content: center;
 }
 
 .inventory-table td {
