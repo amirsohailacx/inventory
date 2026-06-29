@@ -1275,12 +1275,35 @@ function handleAvatarFileUpload(file) {
     reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-            // Resize to 120x120 (extremely small string!)
+            // Proportional resize to 120x120 (prevent stretching/squishing)
             const canvas = document.createElement('canvas');
-            canvas.width = 120;
-            canvas.height = 120;
+            const maxDim = 120;
+            canvas.width = maxDim;
+            canvas.height = maxDim;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, 120, 120);
+            
+            // Clear canvas to transparent background
+            ctx.clearRect(0, 0, maxDim, maxDim);
+            
+            // Calculate proportional dimensions to fit inside 120x120
+            let width = img.width;
+            let height = img.height;
+            let dx = 0;
+            let dy = 0;
+            
+            if (width > height) {
+                const ratio = maxDim / width;
+                width = maxDim;
+                height = height * ratio;
+                dy = (maxDim - height) / 2; // Center vertically
+            } else {
+                const ratio = maxDim / height;
+                height = maxDim;
+                width = width * ratio;
+                dx = (maxDim - width) / 2; // Center horizontally
+            }
+            
+            ctx.drawImage(img, dx, dy, width, height);
 
             // Export to PNG to preserve transparency (prevent black background)
             const compressedBase64 = canvas.toDataURL('image/png');
