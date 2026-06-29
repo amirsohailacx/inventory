@@ -506,18 +506,21 @@ input:checked + .slider:before {
 }
 
 .inventory-table th {
-    background-color: rgba(0, 0, 0, 0.15);
-    padding: 1rem 1.25rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+    background-color: #0284c7 !important; /* Premium Sky Blue Band */
+    color: #ffffff !important;           /* High-contrast white text */
+    padding: 1.1rem 1.25rem;
+    font-size: 0.82rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.75px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+    white-space: nowrap;                 /* Prevent sort arrows from wrapping below text */
+    vertical-align: middle;
 }
 
 body.light-theme .inventory-table th {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
 }
 
 .inventory-table td {
@@ -887,18 +890,19 @@ body.light-theme .inventory-table th {
 }
 
 .sortable-header:hover {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    color: var(--text-primary) !important;
+    background-color: #0369a1 !important; /* Darker blue on hover */
+    color: #ffffff !important;
 }
 
 .sortable-header i {
-    margin-left: 0.35rem;
+    margin-left: 0.45rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.4); /* Semi-transparent white default icon */
+    transition: var(--transition);
 }
 
 .sortable-header.asc i, .sortable-header.desc i {
-    color: var(--primary);
+    color: #ffffff !important;        /* Solid white icon when active */
 }
 
 /* Direct input field for manual quantities */
