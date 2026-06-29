@@ -1230,6 +1230,9 @@ if (avatarUploadDropzone && avatarFileInput) {
     // Click dropzone to select local file
     avatarUploadDropzone.addEventListener('click', () => avatarFileInput.click());
     
+    // Stop propagation so clicking the input doesn't trigger parent dropzone click again (avoids loop)
+    avatarFileInput.addEventListener('click', (e) => e.stopPropagation());
+    
     avatarFileInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleAvatarFileUpload(e.target.files[0]);
     });
@@ -1316,6 +1319,9 @@ const modalImageInput = document.getElementById('modal-image-input');
 if (modalImageDropzone && modalImageInput) {
     // Click to select file
     modalImageDropzone.addEventListener('click', () => modalImageInput.click());
+    
+    // Stop propagation so clicking the input doesn't trigger parent click loops
+    modalImageInput.addEventListener('click', (e) => e.stopPropagation());
     
     modalImageInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleImageUpload(e.target.files[0]);
