@@ -456,16 +456,24 @@
 
     <!-- Change Avatar Modal -->
     <div id="change-avatar-modal" class="detail-modal-overlay hidden">
-        <div class="detail-modal-card" style="max-width: 400px; height: auto; max-height: 400px; padding: 2rem; border-radius: var(--radius-md);">
+        <div class="detail-modal-card" style="max-width: 400px; height: auto; max-height: 520px; padding: 2rem; border-radius: var(--radius-md);">
             <button class="close-modal-btn" id="close-avatar-modal-btn" style="top: 0.5rem; right: 0.75rem;">&times;</button>
             <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;"><i class="fa-solid fa-image"></i> Change Profile Picture</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.4;">
-                Paste a direct image URL (e.g. from Postimages) to update your profile icon.
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.4;">
+                Select a local image from your computer or provide a web URL link.
             </p>
             <form id="change-avatar-form" class="inventory-form">
                 <div class="form-group">
-                    <label for="new-avatar-url">Avatar Image URL</label>
-                    <input type="url" id="new-avatar-url" required placeholder="https://example.com/avatar.png">
+                    <label>Upload from Computer</label>
+                    <div class="drop-zone" id="avatar-upload-dropzone" style="padding: 1rem; border-style: dashed; cursor: pointer; border-radius: var(--radius-md); text-align: center; background-color: var(--bg-input); border: 1px dashed var(--border-color); margin-bottom: 1rem;">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 0.25rem; display: block;"></i>
+                        <span style="font-size: 0.8rem;">Drag image file here or click to browse</span>
+                        <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="new-avatar-url">Or Paste Web Image URL</label>
+                    <input type="url" id="new-avatar-url" placeholder="https://example.com/avatar.png">
                 </div>
                 <button type="submit" class="submit-btn" id="avatar-submit-btn">
                     <i class="fa-solid fa-check"></i> Update Photo
@@ -477,6 +485,6 @@
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=15"></script>
 </body>
 </html>

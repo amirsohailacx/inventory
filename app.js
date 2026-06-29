@@ -1222,7 +1222,75 @@ if (changeAvatarModal) {
     });
 }
 
-// Form Submission Event
+// Form Submission Event & File Uploader (Profile Avatar)
+const avatarUploadDropzone = document.getElementById('avatar-upload-dropzone');
+const avatarFileInput = document.getElementById('avatar-file-input');
+
+if (avatarUploadDropzone && avatarFileInput) {
+    // Click dropzone to select local file
+    avatarUploadDropzone.addEventListener('click', () => avatarFileInput.click());
+    
+    avatarFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleAvatarFileUpload(e.target.files[0]);
+    });
+
+    // Drag-and-drop events on avatar dropzone
+    ['dragenter', 'dragover'].forEach(name => {
+        avatarUploadDropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            avatarUploadDropzone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+        avatarUploadDropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            avatarUploadDropzone.classList.remove('dragover');
+        });
+    });
+
+    avatarUploadDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        avatarUploadDropzone.classList.remove('dragover');
+        const dt = e.dataTransfer;
+        if (dt.files.length) {
+            handleAvatarFileUpload(dt.files[0]);
+        }
+    });
+}
+
+function handleAvatarFileUpload(file) {
+    if (!file.type.startsWith('image/')) {
+        showToast("Error: File must be an image.", "error");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            // Resize to 120x120 (extremely small string!)
+            const canvas = document.createElement('canvas');
+            canvas.width = 120;
+            canvas.height = 120;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, 120, 120);
+
+            // Compress to JPEG with 0.8 quality
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            localStorage.setItem('profile_avatar_url', compressedBase64);
+            updateProfileAvatar();
+            showToast("Profile avatar updated successfully!", "success");
+            changeAvatarModal.classList.add('hidden');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 if (changeAvatarForm) {
     changeAvatarForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -1233,6 +1301,8 @@ if (changeAvatarForm) {
             updateProfileAvatar();
             showToast("Profile avatar updated successfully!", "success");
             changeAvatarModal.classList.add('hidden');
+        } else {
+            showToast("Please select a file to upload or paste a URL link.", "warning");
         }
     });
 }
