@@ -916,7 +916,7 @@ function openProductModal(item) {
         modalProductImage.src = imageUrl;
     } else {
         // Safe, clean abstract blueprint drawing SVG placeholder
-        modalProductImage.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%231a243c'/><circle cx='200' cy='150' r='50' stroke='%2338bdf8' stroke-width='2' fill='none' stroke-dasharray='5,5'/><path d='M100 150 L300 150 M200 50 L200 250' stroke='%2364748b' stroke-width='1'/><text x='50%'' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='14'>NO DRAWING AVAILABLE</text></svg>";
+        modalProductImage.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%231a243c'/><circle cx='200' cy='150' r='50' stroke='%2338bdf8' stroke-width='2' fill='none' stroke-dasharray='5,5'/><path d='M100 150 L300 150 M200 50 L200 250' stroke='%2364748b' stroke-width='1'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='14'>NO DRAWING AVAILABLE</text></svg>";
     }
     
     // Populate Dispatch history list
