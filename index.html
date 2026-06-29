@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS (Excel Parser) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
     <!-- Login Gate Overlay -->
@@ -184,6 +184,20 @@
                             <input type="text" id="new-catalogue-number" placeholder="e.g. 0016FB2E6120170">
                         </div>
                         <div class="form-group">
+                            <label for="new-image-url">Image URL</label>
+                            <input type="url" id="new-image-url" placeholder="https://example.com/drawing.png">
+                        </div>
+                        <div class="form-group-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="new-mfg-date">Manufacturing Date</label>
+                                <input type="date" id="new-mfg-date">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-arrival-date">Arrival Date</label>
+                                <input type="date" id="new-arrival-date">
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label for="new-specs">Specifications / Description</label>
                             <textarea id="new-specs" rows="2" placeholder="e.g. 16K, 300 nm, 50 μm"></textarea>
                         </div>
@@ -230,6 +244,18 @@
                                 <select id="map-catalogue" class="map-select"></select>
                             </div>
                             <div class="mapping-card">
+                                <label>Image URL</label>
+                                <select id="map-image" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Mfg Date</label>
+                                <select id="map-mfg" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
+                                <label>Arrival Date</label>
+                                <select id="map-arrival" class="map-select"></select>
+                            </div>
+                            <div class="mapping-card">
                                 <label>Specs / Description</label>
                                 <select id="map-specs" class="map-select"></select>
                             </div>
@@ -266,12 +292,17 @@
                         <h3><i class="fa-solid fa-book"></i> Setup Guide for the Warehouse Owner</h3>
                         <ol class="setup-steps">
                             <li>Create a new <strong>Google Sheet</strong>.</li>
-                            <li>Add these 4 column headers in the first row (Row 1):
+                            <li>Add these 9 column headers in the first row (Row 1):
                                 <ul>
-                                    <li><code>Product Name</code> (Column A)</li>
-                                    <li><code>Catalogue Number</code> (Column B)</li>
-                                    <li><code>Specs</code> (Column C)</li>
-                                    <li><code>Quantity</code> (Column D)</li>
+                                    <li><code>No.</code> (Column A)</li>
+                                    <li><code>Product Name</code> (Column B)</li>
+                                    <li><code>Quantity</code> (Column C)</li>
+                                    <li><code>Condition</code> (Column D)</li>
+                                    <li><code>Catalogue Number</code> (Column E)</li>
+                                    <li><code>Specs</code> (Column F)</li>
+                                    <li><code>Image URL</code> (Column G)</li>
+                                    <li><code>Mfg Date</code> (Column H)</li>
+                                    <li><code>Arrival Date</code> (Column I)</li>
                                 </ul>
                             </li>
                             <li>Go to <strong>Extensions</strong> -> <strong>Apps Script</strong>.</li>
@@ -291,9 +322,103 @@
         </main>
     </div>
 
+    <!-- Product Detail Modal Overlay -->
+    <div id="detail-modal" class="detail-modal-overlay hidden">
+        <div class="detail-modal-card">
+            <button class="close-modal-btn" id="close-detail-modal-btn">&times;</button>
+            <div class="modal-body-split">
+                <!-- Left Panel: Media and Core Details -->
+                <div class="modal-left-panel">
+                    <div class="modal-image-container">
+                        <img id="modal-product-image" src="" alt="Product Image" class="modal-product-image">
+                    </div>
+                    <h2 id="modal-product-name">Product Name</h2>
+                    <div class="modal-core-info">
+                        <div class="core-info-row">
+                            <span class="core-label">Catalogue Number</span>
+                            <span class="core-value" id="modal-cat-number">N/A</span>
+                        </div>
+                        <div class="core-info-row">
+                            <span class="core-label">Mfg Date</span>
+                            <span class="core-value" id="modal-mfg-date">N/A</span>
+                        </div>
+                        <div class="core-info-row">
+                            <span class="core-label">Date of Arrival</span>
+                            <span class="core-value" id="modal-arrival-date">N/A</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Panel: Tabs and Detailed History -->
+                <div class="modal-right-panel">
+                    <div class="modal-tabs">
+                        <button class="modal-tab-btn active" data-modal-tab="modal-specs-tab">Specifications</button>
+                        <button class="modal-tab-btn" data-modal-tab="modal-dispatch-tab">Dispatch History</button>
+                        <button class="modal-tab-btn" data-modal-tab="modal-ship-tab">Log Shipment</button>
+                    </div>
+                    
+                    <div class="modal-tab-content active" id="modal-specs-tab">
+                        <div class="tab-body">
+                            <h3>Full Description & Specifications</h3>
+                            <p id="modal-specs-text">Specifications...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-tab-content" id="modal-dispatch-tab">
+                        <div class="tab-body">
+                            <h3>Customer Dispatches</h3>
+                            <div class="modal-table-container">
+                                <table class="modal-history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Customer</th>
+                                            <th>Date Shipped</th>
+                                            <th>Quantity</th>
+                                            <th>Tracking Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modal-dispatch-tbody">
+                                        <!-- Log items go here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-tab-content" id="modal-ship-tab">
+                        <div class="tab-body">
+                            <h3>Ship Item (Adjust Stock)</h3>
+                            <form id="dispatch-form" class="inventory-form">
+                                <div class="form-group">
+                                    <label for="dispatch-customer">Customer Name <span class="required">*</span></label>
+                                    <input type="text" id="dispatch-customer" required placeholder="e.g. Oxford Lab">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dispatch-qty">Quantity to Ship <span class="required">*</span></label>
+                                    <input type="number" id="dispatch-qty" required min="1" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dispatch-date">Date of Shipment <span class="required">*</span></label>
+                                    <input type="date" id="dispatch-date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="dispatch-tracking">Tracking Details / Notes</label>
+                                    <input type="text" id="dispatch-tracking" placeholder="e.g. DHL: 1Z999AA1012345">
+                                </div>
+                                <button type="submit" class="submit-btn" id="dispatch-submit-btn">
+                                    <i class="fa-solid fa-truck"></i> Ship & Subtract Stock
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
 </body>
 </html>

@@ -1,32 +1,66 @@
 /**
- * Google Apps Script for Inventory Management Backend (6-Column + Email Alerts + Password Recovery)
+ * Google Apps Script for ACX Instruments Inventory Backend (Multi-Sheet Version)
  * Paste this code into your Google Sheet's Extension -> Apps Script editor.
  * Deploy it as a Web App with access set to "Anyone".
  */
 
 function doGet(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    var data = sheet.getDataRange().getValues();
-    var headers = data[0];
-    var jsonArray = [];
+    var activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var inventorySheet = activeSpreadsheet.getSheetByName("Inventory") || activeSpreadsheet.getActiveSheet();
     
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      // Ensure the row has a Product Name or Catalogue Number
-      if (!row[1] && !row[4]) continue; 
-      
-      var record = {};
-      for (var j = 0; j < headers.length; j++) {
-        record[headers[j].toString().trim()] = row[j];
-      }
-      // Add row index (1-based, including header)
-      record["row_index"] = i + 1;
-      jsonArray.push(record);
+    // Ensure sheet naming is consistent
+    if (inventorySheet.getName() !== "Inventory") {
+      inventorySheet.setName("Inventory");
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", data: jsonArray }))
-      .setMimeType(ContentService.MimeType.JSON);
+    // Auto-create Dispatches log tab if not exists
+    var dispatchesSheet = activeSpreadsheet.getSheetByName("Dispatches");
+    if (!dispatchesSheet) {
+      dispatchesSheet = activeSpreadsheet.insertSheet("Dispatches");
+      dispatchesSheet.appendRow(["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity"]);
+    }
+    
+    // 1. Fetch Inventory Data
+    var invData = inventorySheet.getDataRange().getValues();
+    var invHeaders = invData[0];
+    var jsonInventory = [];
+    
+    for (var i = 1; i < invData.length; i++) {
+      var row = invData[i];
+      if (!row[1] && !row[4]) continue; // Skip empty rows (require product name or catalogue number)
+      
+      var record = {};
+      for (var j = 0; j < invHeaders.length; j++) {
+        record[invHeaders[j].toString().trim()] = row[j];
+      }
+      record["row_index"] = i + 1;
+      jsonInventory.push(record);
+    }
+    
+    // 2. Fetch Dispatches Log
+    var dispData = dispatchesSheet.getDataRange().getValues();
+    var dispHeaders = dispData[0];
+    var jsonDispatches = [];
+    
+    for (var k = 1; k < dispData.length; k++) {
+      var dRow = dispData[k];
+      if (!dRow[0] && !dRow[1]) continue; // Skip empty rows
+      
+      var dRecord = {};
+      for (var l = 0; l < dispHeaders.length; l++) {
+        dRecord[dispHeaders[l].toString().trim()] = dRow[l];
+      }
+      dRecord["row_index"] = k + 1;
+      jsonDispatches.push(dRecord);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "success", 
+      inventory: jsonInventory, 
+      dispatches: jsonDispatches 
+    })).setMimeType(ContentService.MimeType.JSON);
+    
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -35,20 +69,28 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var inventorySheet = activeSpreadsheet.getSheetByName("Inventory") || activeSpreadsheet.getActiveSheet();
+    var dispatchesSheet = activeSpreadsheet.getSheetByName("Dispatches");
+    
+    if (!dispatchesSheet) {
+      dispatchesSheet = activeSpreadsheet.insertSheet("Dispatches");
+      dispatchesSheet.appendRow(["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity"]);
+    }
+    
     var params = JSON.parse(e.postData.contents);
     var action = params.action;
     
     if (action === "update") {
       var rowIndex = parseInt(params.row_index);
-      var quantity = params.quantity; // Save as string to preserve suffixes like " Pcs"
+      var quantity = params.quantity; // e.g. "47 Pcs"
       
       // Update quantity (assuming Quantity is the 3rd column / C)
-      sheet.getRange(rowIndex, 3).setValue(quantity);
+      inventorySheet.getRange(rowIndex, 3).setValue(quantity);
       
       // Send low-stock alert email if quantity is below 5
-      var productName = sheet.getRange(rowIndex, 2).getValue();
-      var catalogueNumber = sheet.getRange(rowIndex, 5).getValue();
+      var productName = inventorySheet.getRange(rowIndex, 2).getValue();
+      var catalogueNumber = inventorySheet.getRange(rowIndex, 5).getValue();
       checkLowStockAndEmail(productName, catalogueNumber, quantity);
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Quantity updated" }))
@@ -56,16 +98,19 @@ function doPost(e) {
     } 
     
     else if (action === "add") {
-      var newNo = sheet.getLastRow();
+      var newNo = inventorySheet.getLastRow();
       
-      // Append row: No., Product Name, Quantity, Condition, Catalogue Number, Specs
-      sheet.appendRow([
+      // Append row: No., Product Name, Quantity, Condition, Catalogue Number, Specs, Image URL, Mfg Date, Arrival Date
+      inventorySheet.appendRow([
         newNo,
         params.product_name || "",
         params.quantity || "0",
         params.condition || "",
         params.catalogue_number || "",
-        params.specs || ""
+        params.specs || "",
+        params.image_url || "",
+        params.mfg_date || "",
+        params.arrival_date || ""
       ]);
       
       // Send low-stock alert email if quantity is below 5
@@ -77,12 +122,12 @@ function doPost(e) {
     
     else if (action === "delete") {
       var rowIndex = parseInt(params.row_index);
-      sheet.deleteRow(rowIndex);
+      inventorySheet.deleteRow(rowIndex);
       
       // Re-index the No. column (Column A) for all remaining items
-      var lastRow = sheet.getLastRow();
+      var lastRow = inventorySheet.getLastRow();
       for (var r = 2; r <= lastRow; r++) {
-        sheet.getRange(r, 1).setValue(r - 1);
+        inventorySheet.getRange(r, 1).setValue(r - 1);
       }
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Item deleted successfully" }))
@@ -93,9 +138,9 @@ function doPost(e) {
       var items = params.items; 
       
       // Clear all rows except the header
-      var lastRow = sheet.getLastRow();
+      var lastRow = inventorySheet.getLastRow();
       if (lastRow > 1) {
-        sheet.deleteRows(2, lastRow - 1);
+        inventorySheet.deleteRows(2, lastRow - 1);
       }
       
       var lowStockItems = [];
@@ -103,13 +148,16 @@ function doPost(e) {
       // Append the new rows
       for (var i = 0; i < items.length; i++) {
         var item = items[i];
-        sheet.appendRow([
+        inventorySheet.appendRow([
           i + 1, // No.
           item["Product Name"] || "",
           item["Quantity"] || "0",
           item["Condition"] || "",
           item["Catalogue Number"] || "",
-          item["Specs"] || ""
+          item["Specs"] || "",
+          item["Image URL"] || "",
+          item["Mfg Date"] || "",
+          item["Arrival Date"] || ""
         ]);
         
         // Track low-stock items in the bulk list
@@ -124,7 +172,7 @@ function doPost(e) {
         sendBulkLowStockEmail(lowStockItems);
       }
       
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Bulk import complete. Imported " + items.length + " items." }))
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Bulk import complete" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -142,6 +190,47 @@ function doPost(e) {
       }
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Password recovery email sent" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    else if (action === "dispatch") {
+      // 1. Log to Dispatches Sheet
+      dispatchesSheet.appendRow([
+        params.catalogue_number || "",
+        params.customer || "",
+        params.dispatch_date || "",
+        params.tracking_details || "",
+        params.quantity || "0"
+      ]);
+      
+      // 2. Adjust Stock Level in Inventory Sheet
+      var invData = inventorySheet.getDataRange().getValues();
+      var targetCat = params.catalogue_number;
+      var dispatchQty = parseInt(params.quantity) || 0;
+      
+      for (var s = 1; s < invData.length; s++) {
+        var catInRow = invData[s][4]; // Catalogue Number is column 5 / index 4
+        if (targetCat && catInRow && catInRow.toString().trim() === targetCat.toString().trim()) {
+          var currentQtyStr = invData[s][2].toString(); // Quantity is column 3 / index 2
+          
+          // Parse quantity and subtract
+          var numberPart = parseInt(currentQtyStr) || 0;
+          var textPart = currentQtyStr.replace(/^[0-9]+/, ''); // e.g. " Pcs" or " pcs"
+          
+          var newQtyNum = Math.max(0, numberPart - dispatchQty);
+          var newQtyStr = newQtyNum + textPart;
+          
+          // Write back to sheet
+          var sheetRowIndex = s + 1;
+          inventorySheet.getRange(sheetRowIndex, 3).setValue(newQtyStr);
+          
+          // Email alert check
+          checkLowStockAndEmail(invData[s][1], targetCat, newQtyStr);
+          break;
+        }
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Product successfully dispatched and stock adjusted!" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     

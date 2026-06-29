@@ -1,5 +1,7 @@
 // App State
 let inventoryData = [];
+let dispatchesData = []; // Store customer dispatches history
+let activeProduct = null; // Track current product in details modal
 let googleScriptUrl = localStorage.getItem('google_inventory_api_url') || 'https://script.google.com/macros/s/AKfycbwPwW6IFEkMV4ORdUgyhxta67aijDYncvub_CEDjyn8eVPvxcfL2D0YdBmsphK2RERV/exec';
 let currentFilter = 'all';
 let currentExcelData = null; // Stored parsed excel sheets
@@ -45,6 +47,9 @@ const mapNameSelect = document.getElementById('map-name');
 const mapQuantitySelect = document.getElementById('map-quantity');
 const mapConditionSelect = document.getElementById('map-condition');
 const mapCatalogueSelect = document.getElementById('map-catalogue');
+const mapImageSelect = document.getElementById('map-image');
+const mapMfgSelect = document.getElementById('map-mfg');
+const mapArrivalSelect = document.getElementById('map-arrival');
 const mapSpecsSelect = document.getElementById('map-specs');
 const confirmImportBtn = document.getElementById('confirm-import-btn');
 const cancelImportBtn = document.getElementById('cancel-import-btn');
@@ -264,6 +269,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const quantity = document.getElementById('new-quantity').value.trim();
         const condition = document.getElementById('new-condition').value.trim();
         const catalogue = document.getElementById('new-catalogue-number').value.trim();
+        const imageUrl = document.getElementById('new-image-url').value.trim();
+        const mfgDate = document.getElementById('new-mfg-date').value;
+        const arrivalDate = document.getElementById('new-arrival-date').value;
         const specs = document.getElementById('new-specs').value.trim();
 
         addSubmitBtn.disabled = true;
@@ -282,6 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     quantity: quantity,
                     condition: condition,
                     catalogue_number: catalogue,
+                    image_url: imageUrl,
+                    mfg_date: mfgDate,
+                    arrival_date: arrivalDate,
                     specs: specs
                 })
             });
@@ -342,7 +353,8 @@ async function fetchInventory() {
         const result = await res.json();
         
         if (result.status === "success") {
-            inventoryData = result.data;
+            inventoryData = result.inventory || [];
+            dispatchesData = result.dispatches || [];
             updateConnectionStatus(true, "Connected");
             applyFiltersAndRender();
         } else {
@@ -458,11 +470,11 @@ function renderTable(items) {
             }
         }
         
-        // Main Row (Summary)
-        const trMain = document.createElement('tr');
-        trMain.className = 'main-row';
-        trMain.id = `main-row-${item.row_index}`;
-        trMain.innerHTML = `
+        // Clickable Product Row
+        const tr = document.createElement('tr');
+        tr.className = 'main-row';
+        tr.id = `product-row-${item.row_index}`;
+        tr.innerHTML = `
             <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
             <td>${escapeHtml(item["Product Name"] || '')}</td>
             <td style="text-align: center;">
@@ -484,53 +496,16 @@ function renderTable(items) {
             </td>
         `;
         
-        // Expandable Detail Row
-        const trDetail = document.createElement('tr');
-        trDetail.className = 'detail-row';
-        trDetail.id = `detail-row-${item.row_index}`;
-        trDetail.innerHTML = `
-            <td colspan="7" class="detail-cell">
-                <div class="detail-container">
-                    <div class="detail-specs">
-                        <h4>Product Specifications & Notes</h4>
-                        <p>${escapeHtml(item["Specs"] || 'No additional specifications provided for this product.')}</p>
-                    </div>
-                    <div class="detail-meta">
-                        <div class="meta-item">
-                            <span class="meta-label">Catalogue Number:</span>
-                            <span class="meta-value"><code>${escapeHtml(item["Catalogue Number"] || 'N/A')}</code></span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Condition Status:</span>
-                            <span class="meta-value">${conditionBadge || 'N/A'}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Database Row Index:</span>
-                            <span class="meta-value">Row #${item.row_index}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Stock Status:</span>
-                            <span class="meta-value" style="color: ${isLow ? 'var(--danger)' : 'var(--success)'};">
-                                ${isLow ? '⚠️ Low Stock Alert (< 10)' : '✓ Stock Level OK'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </td>
-        `;
-        
-        // Add row toggle listener
-        trMain.addEventListener('click', (e) => {
-            // Ignore click if clicking interactive components
+        // Row Click Listener (Open Detail Modal)
+        tr.addEventListener('click', (e) => {
+            // Ignore click if clicking interactive cells
             if (e.target.closest('.qty-btn') || e.target.closest('.qty-value') || e.target.closest('.delete-btn') || e.target.closest('input')) {
                 return;
             }
-            trDetail.classList.toggle('expanded');
-            trMain.classList.toggle('expanded-row');
+            openProductModal(item);
         });
 
-        inventoryTbody.appendChild(trMain);
-        inventoryTbody.appendChild(trDetail);
+        inventoryTbody.appendChild(tr);
     });
 
     // Wire up event listeners to controls
@@ -726,7 +701,7 @@ function handleExcelFile(file) {
 
 // Fill Mapping dropdown selectors
 function populateMappingSelectors(headers) {
-    const selectors = [mapNameSelect, mapQuantitySelect, mapConditionSelect, mapCatalogueSelect, mapSpecsSelect];
+    const selectors = [mapNameSelect, mapQuantitySelect, mapConditionSelect, mapCatalogueSelect, mapImageSelect, mapMfgSelect, mapArrivalSelect, mapSpecsSelect];
     
     selectors.forEach(sel => {
         sel.innerHTML = '<option value="">-- Skip Column --</option>';
@@ -743,6 +718,9 @@ function populateMappingSelectors(headers) {
     autoSelectMap(mapQuantitySelect, headers, ['qty', 'quantity', 'stock', 'count', 'amount']);
     autoSelectMap(mapConditionSelect, headers, ['condition', 'status', 'state']);
     autoSelectMap(mapCatalogueSelect, headers, ['catalogue', 'catalog', 'sku', 'number', 'code']);
+    autoSelectMap(mapImageSelect, headers, ['image', 'url', 'photo', 'drawing', 'pic', 'picture']);
+    autoSelectMap(mapMfgSelect, headers, ['mfg', 'manufacture', 'manufacturing']);
+    autoSelectMap(mapArrivalSelect, headers, ['arrival', 'added', 'received', 'date']);
     autoSelectMap(mapSpecsSelect, headers, ['specs', 'specification', 'desc', 'description', 'detail']);
 }
 
@@ -765,6 +743,9 @@ async function executeBulkImport() {
     const qtyKey = mapQuantitySelect.value;
     const conditionKey = mapConditionSelect.value;
     const catKey = mapCatalogueSelect.value;
+    const imageKey = mapImageSelect.value;
+    const mfgKey = mapMfgSelect.value;
+    const arrivalKey = mapArrivalSelect.value;
     const specsKey = mapSpecsSelect.value;
 
     if (!nameKey) {
@@ -782,6 +763,9 @@ async function executeBulkImport() {
             "Quantity": qtyKey ? (row[qtyKey] || '0').toString() : '0',
             "Condition": conditionKey ? (row[conditionKey] || '') : '',
             "Catalogue Number": catKey ? (row[catKey] || '') : '',
+            "Image URL": imageKey ? (row[imageKey] || '') : '',
+            "Mfg Date": mfgKey ? (row[mfgKey] || '') : '',
+            "Arrival Date": arrivalKey ? (row[arrivalKey] || '') : '',
             "Specs": specsKey ? (row[specsKey] || '') : ''
         };
     }).filter(item => item["Product Name"] !== ''); // Filter out empty product rows
@@ -883,3 +867,178 @@ function exportToCSV() {
     document.body.removeChild(link);
     showToast("Export successful!", "success");
 }
+
+// ========================================================
+// Product Details Modal Controllers
+// ========================================================
+const detailModal = document.getElementById('detail-modal');
+const closeDetailModalBtn = document.getElementById('close-detail-modal-btn');
+const modalProductName = document.getElementById('modal-product-name');
+const modalProductImage = document.getElementById('modal-product-image');
+const modalCatNumber = document.getElementById('modal-cat-number');
+const modalMfgDate = document.getElementById('modal-mfg-date');
+const modalArrivalDate = document.getElementById('modal-arrival-date');
+const modalSpecsText = document.getElementById('modal-specs-text');
+const modalDispatchTbody = document.getElementById('modal-dispatch-tbody');
+const dispatchForm = document.getElementById('dispatch-form');
+const dispatchSubmitBtn = document.getElementById('dispatch-submit-btn');
+
+// Modal Tabs
+const modalTabBtns = document.querySelectorAll('.modal-tab-btn');
+const modalTabContents = document.querySelectorAll('.modal-tab-content');
+
+// Helper to format dates cleanly
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr; // Return raw string if invalid
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) {
+        return dateStr;
+    }
+}
+
+// Open Modal and Populate Data
+function openProductModal(item) {
+    activeProduct = item;
+    
+    // Set text details
+    modalProductName.textContent = item["Product Name"] || 'Unnamed Product';
+    modalCatNumber.textContent = item["Catalogue Number"] || 'N/A';
+    modalMfgDate.textContent = formatDate(item["Mfg Date"]);
+    modalArrivalDate.textContent = formatDate(item["Arrival Date"]);
+    modalSpecsText.textContent = item["Specs"] || 'No specifications provided for this product.';
+    
+    // Set Product Image (loads fallback if empty)
+    const imageUrl = item["Image URL"] || '';
+    if (imageUrl) {
+        modalProductImage.src = imageUrl;
+    } else {
+        // Safe, clean abstract blueprint drawing SVG placeholder
+        modalProductImage.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%231a243c'/><circle cx='200' cy='150' r='50' stroke='%2338bdf8' stroke-width='2' fill='none' stroke-dasharray='5,5'/><path d='M100 150 L300 150 M200 50 L200 250' stroke='%2364748b' stroke-width='1'/><text x='50%'' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='14'>NO DRAWING AVAILABLE</text></svg>";
+    }
+    
+    // Populate Dispatch history list
+    populateDispatchHistory(item["Catalogue Number"]);
+    
+    // Reset forms and tabs
+    dispatchForm.reset();
+    document.getElementById('dispatch-date').value = new Date().toISOString().substring(0, 10);
+    modalTabBtns[0].click(); // Activate first tab (Specifications)
+    
+    // Show Modal
+    detailModal.classList.remove('hidden');
+}
+
+// Filter and populate dispatches matching the product's Catalogue Number
+function populateDispatchHistory(catalogueNumber) {
+    modalDispatchTbody.innerHTML = '';
+    
+    const matchedDispatches = dispatchesData.filter(d => {
+        return catalogueNumber && d["Catalogue Number"] && d["Catalogue Number"].toString().trim() === catalogueNumber.toString().trim();
+    });
+    
+    if (matchedDispatches.length === 0) {
+        modalDispatchTbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No dispatch history recorded for this item.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    matchedDispatches.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${escapeHtml(d["Customer"] || '')}</strong></td>
+            <td>${formatDate(d["Dispatch Date"])}</td>
+            <td><strong>${escapeHtml(d["Quantity"] || '0')} Pcs</strong></td>
+            <td><code>${escapeHtml(d["Tracking Details"] || 'N/A')}</code></td>
+        `;
+        modalDispatchTbody.appendChild(tr);
+    });
+}
+
+// Close Modal Event Listener
+closeDetailModalBtn.addEventListener('click', () => {
+    detailModal.classList.add('hidden');
+    activeProduct = null;
+});
+
+// Click outside modal to close
+detailModal.addEventListener('click', (e) => {
+    if (e.target === detailModal) {
+        detailModal.classList.add('hidden');
+        activeProduct = null;
+    }
+});
+
+// Modal Tabs Navigation Toggle
+modalTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        modalTabBtns.forEach(b => b.classList.remove('active'));
+        modalTabContents.forEach(c => c.classList.remove('active'));
+        
+        btn.classList.add('active');
+        const contentId = btn.getAttribute('data-modal-tab');
+        document.getElementById(contentId).classList.add('active');
+    });
+});
+
+// Handle Log Shipment / Dispatch Form Submit
+dispatchForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!googleScriptUrl) {
+        showToast("No connection to Google Sheets.", "error");
+        return;
+    }
+    if (!activeProduct) return;
+    
+    const customer = document.getElementById('dispatch-customer').value.trim();
+    const qty = document.getElementById('dispatch-qty').value.trim();
+    const date = document.getElementById('dispatch-date').value;
+    const tracking = document.getElementById('dispatch-tracking').value.trim();
+    
+    // Check local stock limits
+    const currentQtyNum = parseInt(activeProduct.Quantity) || 0;
+    const dispatchQtyNum = parseInt(qty) || 0;
+    
+    if (dispatchQtyNum > currentQtyNum) {
+        showToast("Error: Shipped quantity exceeds current warehouse stock!", "error");
+        return;
+    }
+    
+    dispatchSubmitBtn.disabled = true;
+    dispatchSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing Shipment...';
+    
+    try {
+        await fetch(googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'dispatch',
+                catalogue_number: activeProduct["Catalogue Number"] || '',
+                customer: customer,
+                dispatch_date: date,
+                tracking_details: tracking,
+                quantity: qty.toString()
+            })
+        });
+        
+        showToast("Shipment logged successfully! Stock adjusted.", "success");
+        detailModal.classList.add('hidden');
+        activeProduct = null;
+        
+        // Refresh local data
+        setTimeout(fetchInventory, 1500);
+    } catch (error) {
+        showToast("Failed to record shipment. Try again.", "error");
+    } finally {
+        dispatchSubmitBtn.disabled = false;
+        dispatchSubmitBtn.innerHTML = '<i class="fa-solid fa-truck"></i> Ship & Subtract Stock';
+    }
+});
