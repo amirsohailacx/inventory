@@ -80,6 +80,7 @@ function unlockDashboard() {
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("ACX Instruments App loaded: v9 (Details Modal)");
     // Check if already authenticated in sessionStorage
     if (sessionStorage.getItem('authenticated') === 'true') {
         unlockDashboard();
