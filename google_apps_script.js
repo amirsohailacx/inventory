@@ -1,5 +1,5 @@
 /**
- * Google Apps Script for Inventory Management Backend (8-Column Version)
+ * Google Apps Script for Inventory Management Backend (6-Column Version)
  * Paste this code into your Google Sheet's Extension -> Apps Script editor.
  * Deploy it as a Web App with access set to "Anyone".
  */
@@ -14,7 +14,7 @@ function doGet(e) {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       // Ensure the row has a Product Name or Catalogue Number
-      if (!row[1] && !row[6]) continue; 
+      if (!row[1] && !row[4]) continue; 
       
       var record = {};
       for (var j = 0; j < headers.length; j++) {
@@ -43,8 +43,8 @@ function doPost(e) {
       var rowIndex = parseInt(params.row_index);
       var quantity = params.quantity; // Save as string to preserve suffixes like " Pcs"
       
-      // Update quantity (assuming Quantity is the 4th column / D)
-      sheet.getRange(rowIndex, 4).setValue(quantity);
+      // Update quantity (assuming Quantity is the 3rd column / C)
+      sheet.getRange(rowIndex, 3).setValue(quantity);
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Quantity updated" }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -53,14 +53,12 @@ function doPost(e) {
     else if (action === "add") {
       var newNo = sheet.getLastRow();
       
-      // Append row: No., Product Name, Packing Size, Quantity, Condition, Customers, Catalogue Number, Specs
+      // Append row: No., Product Name, Quantity, Condition, Catalogue Number, Specs
       sheet.appendRow([
         newNo,
         params.product_name || "",
-        params.packing_size || "",
         params.quantity || "0",
         params.condition || "",
-        params.customers || "",
         params.catalogue_number || "",
         params.specs || ""
       ]);
@@ -98,10 +96,8 @@ function doPost(e) {
         sheet.appendRow([
           i + 1, // No.
           item["Product Name"] || "",
-          item["Packing Size"] || "",
           item["Quantity"] || "0",
           item["Condition"] || "",
-          item["Customers"] || "",
           item["Catalogue Number"] || "",
           item["Specs"] || ""
         ]);

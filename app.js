@@ -42,10 +42,8 @@ const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const importPreviewSection = document.getElementById('import-preview-section');
 const mapNameSelect = document.getElementById('map-name');
-const mapPackingSizeSelect = document.getElementById('map-packing-size');
 const mapQuantitySelect = document.getElementById('map-quantity');
 const mapConditionSelect = document.getElementById('map-condition');
-const mapCustomersSelect = document.getElementById('map-customers');
 const mapCatalogueSelect = document.getElementById('map-catalogue');
 const mapSpecsSelect = document.getElementById('map-specs');
 const confirmImportBtn = document.getElementById('confirm-import-btn');
@@ -181,10 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const name = document.getElementById('new-product-name').value.trim();
-        const packingSize = document.getElementById('new-packing-size').value.trim();
         const quantity = document.getElementById('new-quantity').value.trim();
         const condition = document.getElementById('new-condition').value.trim();
-        const customers = document.getElementById('new-customers').value.trim();
         const catalogue = document.getElementById('new-catalogue-number').value.trim();
         const specs = document.getElementById('new-specs').value.trim();
 
@@ -201,10 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     action: "add",
                     product_name: name,
-                    packing_size: packingSize,
                     quantity: quantity,
                     condition: condition,
-                    customers: customers,
                     catalogue_number: catalogue,
                     specs: specs
                 })
@@ -300,9 +294,7 @@ function applyFiltersAndRender() {
             (item["Product Name"] && item["Product Name"].toString().toLowerCase().includes(searchVal)) ||
             (item["Catalogue Number"] && item["Catalogue Number"].toString().toLowerCase().includes(searchVal)) ||
             (item["Specs"] && item["Specs"].toString().toLowerCase().includes(searchVal)) ||
-            (item["Packing Size"] && item["Packing Size"].toString().toLowerCase().includes(searchVal)) ||
-            (item["Condition"] && item["Condition"].toString().toLowerCase().includes(searchVal)) ||
-            (item["Customers"] && item["Customers"].toString().toLowerCase().includes(searchVal));
+            (item["Condition"] && item["Condition"].toString().toLowerCase().includes(searchVal));
         
         if (currentFilter === 'low') {
             return matchesSearch && (parseInt(item.Quantity) || 0) < 10;
@@ -338,7 +330,7 @@ function applyFiltersAndRender() {
 function renderLoadingState() {
     inventoryTbody.innerHTML = `
         <tr>
-            <td colspan="9" class="loading-state">
+            <td colspan="7" class="loading-state">
                 <i class="fa-solid fa-spinner fa-spin"></i> Refreshing inventory records...
             </td>
         </tr>
@@ -349,7 +341,7 @@ function renderLoadingState() {
 function renderEmptyState(message) {
     inventoryTbody.innerHTML = `
         <tr>
-            <td colspan="9" class="empty-state">
+            <td colspan="7" class="empty-state">
                 <i class="fa-solid fa-circle-question" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;"></i>
                 ${message}
             </td>
@@ -370,10 +362,6 @@ function renderTable(items) {
         const qtyNum = parseInt(rawQty) || 0;
         const isLow = qtyNum < 10;
         
-        // Define Packing Size pill
-        const packingSizeVal = item["Packing Size"] || '';
-        const packingSizeBadge = packingSizeVal ? `<span class="badge badge-packing">${escapeHtml(packingSizeVal)}</span>` : '';
-        
         // Define Condition pill
         const conditionVal = item["Condition"] || '';
         let conditionBadge = '';
@@ -388,15 +376,10 @@ function renderTable(items) {
             }
         }
         
-        // Define Customer pill
-        const customerVal = item["Customers"] || '';
-        const customerBadge = customerVal ? `<span class="badge badge-customer">${escapeHtml(customerVal)}</span>` : '';
-        
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
             <td><strong>${escapeHtml(item["Product Name"] || '')}</strong></td>
-            <td>${packingSizeBadge}</td>
             <td style="text-align: center;">
                 <div class="quantity-control">
                     <button class="qty-btn dec-btn" data-row="${item.row_index}" data-raw-qty="${rawQty}"><i class="fa-solid fa-minus"></i></button>
@@ -405,7 +388,6 @@ function renderTable(items) {
                 </div>
             </td>
             <td>${conditionBadge}</td>
-            <td>${customerBadge}</td>
             <td><code>${escapeHtml(item["Catalogue Number"] || '')}</code></td>
             <td><small style="color: var(--text-secondary);">${escapeHtml(item["Specs"] || '')}</small></td>
             <td style="text-align: center;">
@@ -607,7 +589,7 @@ function handleExcelFile(file) {
 
 // Fill Mapping dropdown selectors
 function populateMappingSelectors(headers) {
-    const selectors = [mapNameSelect, mapPackingSizeSelect, mapQuantitySelect, mapConditionSelect, mapCustomersSelect, mapCatalogueSelect, mapSpecsSelect];
+    const selectors = [mapNameSelect, mapQuantitySelect, mapConditionSelect, mapCatalogueSelect, mapSpecsSelect];
     
     selectors.forEach(sel => {
         sel.innerHTML = '<option value="">-- Skip Column --</option>';
@@ -621,10 +603,8 @@ function populateMappingSelectors(headers) {
 
     // Auto-match helpers (intelligent defaults based on matching text)
     autoSelectMap(mapNameSelect, headers, ['name', 'product', 'item', 'title']);
-    autoSelectMap(mapPackingSizeSelect, headers, ['packing', 'pack', 'size', 'pkg']);
     autoSelectMap(mapQuantitySelect, headers, ['qty', 'quantity', 'stock', 'count', 'amount']);
     autoSelectMap(mapConditionSelect, headers, ['condition', 'status', 'state']);
-    autoSelectMap(mapCustomersSelect, headers, ['customer', 'customers', 'client']);
     autoSelectMap(mapCatalogueSelect, headers, ['catalogue', 'catalog', 'sku', 'number', 'code']);
     autoSelectMap(mapSpecsSelect, headers, ['specs', 'specification', 'desc', 'description', 'detail']);
 }
@@ -645,10 +625,8 @@ async function executeBulkImport() {
     }
 
     const nameKey = mapNameSelect.value;
-    const packingKey = mapPackingSizeSelect.value;
     const qtyKey = mapQuantitySelect.value;
     const conditionKey = mapConditionSelect.value;
-    const customersKey = mapCustomersSelect.value;
     const catKey = mapCatalogueSelect.value;
     const specsKey = mapSpecsSelect.value;
 
@@ -664,10 +642,8 @@ async function executeBulkImport() {
     const mappedItems = currentExcelData.map(row => {
         return {
             "Product Name": row[nameKey] || '',
-            "Packing Size": packingKey ? (row[packingKey] || '') : '',
             "Quantity": qtyKey ? (row[qtyKey] || '0').toString() : '0',
             "Condition": conditionKey ? (row[conditionKey] || '') : '',
-            "Customers": customersKey ? (row[customersKey] || '') : '',
             "Catalogue Number": catKey ? (row[catKey] || '') : '',
             "Specs": specsKey ? (row[specsKey] || '') : ''
         };
@@ -729,9 +705,7 @@ function exportToCSV() {
             (item["Product Name"] && item["Product Name"].toString().toLowerCase().includes(searchVal)) ||
             (item["Catalogue Number"] && item["Catalogue Number"].toString().toLowerCase().includes(searchVal)) ||
             (item["Specs"] && item["Specs"].toString().toLowerCase().includes(searchVal)) ||
-            (item["Packing Size"] && item["Packing Size"].toString().toLowerCase().includes(searchVal)) ||
-            (item["Condition"] && item["Condition"].toString().toLowerCase().includes(searchVal)) ||
-            (item["Customers"] && item["Customers"].toString().toLowerCase().includes(searchVal));
+            (item["Condition"] && item["Condition"].toString().toLowerCase().includes(searchVal));
         
         if (currentFilter === 'low') {
             return matchesSearch && (parseInt(item.Quantity) || 0) < 10;
@@ -745,17 +719,15 @@ function exportToCSV() {
     }
 
     // Generate CSV Content
-    const headers = ["No.", "Product Name", "Packing Size", "Quantity", "Condition", "Customers", "Catalogue Number", "Specs"];
+    const headers = ["No.", "Product Name", "Quantity", "Condition", "Catalogue Number", "Specs"];
     const csvRows = [headers.join(",")];
 
     filtered.forEach(item => {
         const row = [
             `"${(item["No."] || '').toString().replace(/"/g, '""')}"`,
             `"${(item["Product Name"] || '').toString().replace(/"/g, '""')}"`,
-            `"${(item["Packing Size"] || '').toString().replace(/"/g, '""')}"`,
             `"${(item["Quantity"] || '0').toString().replace(/"/g, '""')}"`,
             `"${(item["Condition"] || '').toString().replace(/"/g, '""')}"`,
-            `"${(item["Customers"] || '').toString().replace(/"/g, '""')}"`,
             `"${(item["Catalogue Number"] || '').toString().replace(/"/g, '""')}"`,
             `"${(item["Specs"] || '').toString().replace(/"/g, '""')}"`
         ];
