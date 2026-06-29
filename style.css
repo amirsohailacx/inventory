@@ -952,3 +952,207 @@ body.light-theme .inventory-table th {
     color: var(--primary);
     margin-right: 0.45rem;
 }
+
+/* ========================================================
+   Security / Login Gate Overlay
+   ======================================================== */
+.login-gate-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-app);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.login-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-logo-area {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.login-logo {
+    max-width: 160px;
+    height: auto;
+    filter: invert(1);
+}
+
+body.light-theme .login-logo {
+    filter: none;
+}
+
+.login-card h2 {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-card p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 1.75rem;
+    line-height: 1.4;
+}
+
+.login-input-group {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.login-input-group input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    outline: none;
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.login-input-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.login-input-group .input-icon {
+    position: absolute;
+    left: 0.95rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.login-submit-btn {
+    width: 100%;
+    padding: 0.8rem;
+    border: none;
+    background-color: var(--primary);
+    color: white;
+    font-weight: 600;
+    font-size: 0.92rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.login-submit-btn:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+}
+
+.login-error-message {
+    color: var(--danger);
+    font-size: 0.82rem;
+    margin-top: 1rem;
+    font-weight: 500;
+}
+
+/* ========================================================
+   Expandable Row Styling
+   ======================================================== */
+.main-row {
+    cursor: pointer;
+}
+
+.main-row td {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.main-row.expanded-row td {
+    border-bottom: none;
+    background-color: rgba(255, 255, 255, 0.01);
+}
+
+body.light-theme .main-row.expanded-row td {
+    background-color: rgba(0, 0, 0, 0.005);
+}
+
+.detail-row {
+    display: none;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .detail-row {
+    background-color: rgba(0, 0, 0, 0.015);
+}
+
+.detail-row.expanded {
+    display: table-row;
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-cell {
+    padding: 0 !important;
+}
+
+.detail-container {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.detail-specs {
+    flex: 1;
+    min-width: 250px;
+}
+
+.detail-specs h4 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.detail-specs p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.detail-meta {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--border-color);
+}
+
+.meta-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+}
+
+.meta-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.meta-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+

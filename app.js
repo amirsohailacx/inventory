@@ -50,8 +50,56 @@ const confirmImportBtn = document.getElementById('confirm-import-btn');
 const cancelImportBtn = document.getElementById('cancel-import-btn');
 const importCountBadge = document.getElementById('import-count-badge');
 
+// ========================================================
+// Security / Login Gate Verification
+// ========================================================
+const CORRECT_PASSWORD_HASH = "bf1fc10e3fd218e89dc1a62afd533478305bf3f1397bacb7a619ad88b102a570"; // ACXcam2026
+
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+function unlockDashboard() {
+    document.getElementById('login-gate').classList.add('hidden');
+    document.getElementById('app-wrapper').classList.remove('hidden');
+    
+    // Fetch latest data if URL is configured
+    if (googleScriptUrl) {
+        fetchInventory();
+    }
+}
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+    // Check if already authenticated in sessionStorage
+    if (sessionStorage.getItem('authenticated') === 'true') {
+        unlockDashboard();
+    } else {
+        // Handle login submission
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const passwordInput = document.getElementById('login-password');
+            const hashedInput = await sha256(passwordInput.value);
+            
+            if (hashedInput === CORRECT_PASSWORD_HASH) {
+                sessionStorage.setItem('authenticated', 'true');
+                loginError.classList.add('hidden');
+                unlockDashboard();
+            } else {
+                loginError.classList.remove('hidden');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+    }
+
     // Initialize Theme (Default is dark mode, check local storage)
     const savedTheme = localStorage.getItem('theme') || 'dark';
     if (savedTheme === 'light') {
@@ -79,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (googleScriptUrl) {
         settingsApiUrlInput.value = googleScriptUrl;
         updateConnectionStatus(true, "Connected");
-        fetchInventory();
+        // Note: fetchInventory is called in unlockDashboard if logged in
     } else {
         updateConnectionStatus(false, "Setup Required");
         setupAlertBanner.classList.remove('hidden');
@@ -376,8 +424,11 @@ function renderTable(items) {
             }
         }
         
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+        // Main Row (Summary)
+        const trMain = document.createElement('tr');
+        trMain.className = 'main-row';
+        trMain.id = `main-row-${item.row_index}`;
+        trMain.innerHTML = `
             <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
             <td>${escapeHtml(item["Product Name"] || '')}</td>
             <td style="text-align: center;">
@@ -389,7 +440,7 @@ function renderTable(items) {
             </td>
             <td>${conditionBadge}</td>
             <td><code>${escapeHtml(item["Catalogue Number"] || '')}</code></td>
-            <td><small style="color: var(--text-secondary);">${escapeHtml(item["Specs"] || '')}</small></td>
+            <td><small style="color: var(--text-secondary); text-overflow: ellipsis; display: block; max-width: 250px; overflow: hidden; white-space: nowrap;">${escapeHtml(item["Specs"] || '')}</small></td>
             <td style="text-align: center;">
                 <div class="action-cell">
                     <button class="btn-icon delete delete-btn" data-row="${item.row_index}" title="Remove Item">
@@ -398,24 +449,76 @@ function renderTable(items) {
                 </div>
             </td>
         `;
-        inventoryTbody.appendChild(tr);
+        
+        // Expandable Detail Row
+        const trDetail = document.createElement('tr');
+        trDetail.className = 'detail-row';
+        trDetail.id = `detail-row-${item.row_index}`;
+        trDetail.innerHTML = `
+            <td colspan="7" class="detail-cell">
+                <div class="detail-container">
+                    <div class="detail-specs">
+                        <h4>Product Specifications & Notes</h4>
+                        <p>${escapeHtml(item["Specs"] || 'No additional specifications provided for this product.')}</p>
+                    </div>
+                    <div class="detail-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Catalogue Number:</span>
+                            <span class="meta-value"><code>${escapeHtml(item["Catalogue Number"] || 'N/A')}</code></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Condition Status:</span>
+                            <span class="meta-value">${conditionBadge || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Database Row Index:</span>
+                            <span class="meta-value">Row #${item.row_index}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Stock Status:</span>
+                            <span class="meta-value" style="color: ${isLow ? 'var(--danger)' : 'var(--success)'};">
+                                ${isLow ? '⚠️ Low Stock Alert (< 10)' : '✓ Stock Level OK'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        `;
+        
+        // Add row toggle listener
+        trMain.addEventListener('click', (e) => {
+            // Ignore click if clicking interactive components
+            if (e.target.closest('.qty-btn') || e.target.closest('.qty-value') || e.target.closest('.delete-btn') || e.target.closest('input')) {
+                return;
+            }
+            trDetail.classList.toggle('expanded');
+            trMain.classList.toggle('expanded-row');
+        });
+
+        inventoryTbody.appendChild(trMain);
+        inventoryTbody.appendChild(trDetail);
     });
 
     // Wire up event listeners to controls
     document.querySelectorAll('.dec-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const newQty = adjustQuantityString(btn.dataset.rawQty, -1);
             updateQuantity(btn.dataset.row, newQty);
         });
     });
     document.querySelectorAll('.inc-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const newQty = adjustQuantityString(btn.dataset.rawQty, 1);
             updateQuantity(btn.dataset.row, newQty);
         });
     });
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteItem(btn.dataset.row));
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteItem(btn.dataset.row);
+        });
     });
 
     // Inline Editing

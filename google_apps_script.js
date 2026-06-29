@@ -1,5 +1,5 @@
 /**
- * Google Apps Script for Inventory Management Backend (6-Column Version)
+ * Google Apps Script for Inventory Management Backend (6-Column + Email Alerts)
  * Paste this code into your Google Sheet's Extension -> Apps Script editor.
  * Deploy it as a Web App with access set to "Anyone".
  */
@@ -20,7 +20,7 @@ function doGet(e) {
       for (var j = 0; j < headers.length; j++) {
         record[headers[j].toString().trim()] = row[j];
       }
-      // Add row index (1-based, including header, so row i is index i+1 in Google Sheets)
+      // Add row index (1-based, including header)
       record["row_index"] = i + 1;
       jsonArray.push(record);
     }
@@ -46,6 +46,11 @@ function doPost(e) {
       // Update quantity (assuming Quantity is the 3rd column / C)
       sheet.getRange(rowIndex, 3).setValue(quantity);
       
+      // Send low-stock alert email if quantity is below 5
+      var productName = sheet.getRange(rowIndex, 2).getValue();
+      var catalogueNumber = sheet.getRange(rowIndex, 5).getValue();
+      checkLowStockAndEmail(productName, catalogueNumber, quantity);
+      
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Quantity updated" }))
         .setMimeType(ContentService.MimeType.JSON);
     } 
@@ -62,6 +67,9 @@ function doPost(e) {
         params.catalogue_number || "",
         params.specs || ""
       ]);
+      
+      // Send low-stock alert email if quantity is below 5
+      checkLowStockAndEmail(params.product_name, params.catalogue_number, params.quantity);
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Item added successfully" }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -90,6 +98,8 @@ function doPost(e) {
         sheet.deleteRows(2, lastRow - 1);
       }
       
+      var lowStockItems = [];
+      
       // Append the new rows
       for (var i = 0; i < items.length; i++) {
         var item = items[i];
@@ -101,6 +111,17 @@ function doPost(e) {
           item["Catalogue Number"] || "",
           item["Specs"] || ""
         ]);
+        
+        // Track low-stock items in the bulk list
+        var qtyVal = parseInt(item["Quantity"]) || 0;
+        if (qtyVal < 5) {
+          lowStockItems.push("- " + item["Product Name"] + " (Qty: " + item["Quantity"] + ")");
+        }
+      }
+      
+      // Send low-stock digest email for bulk imports if any exist
+      if (lowStockItems.length > 0) {
+        sendBulkLowStockEmail(lowStockItems);
       }
       
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Bulk import complete. Imported " + items.length + " items." }))
@@ -113,5 +134,52 @@ function doPost(e) {
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Sends a low stock alert email for a single item.
+ */
+function checkLowStockAndEmail(productName, catalogueNumber, qtyString) {
+  try {
+    var qty = parseInt(qtyString);
+    if (!isNaN(qty) && qty < 5) {
+      var recipient = Session.getActiveUser().getEmail() || SpreadsheetApp.getActiveSpreadsheet().getOwner().getEmail();
+      if (recipient) {
+        var subject = "⚠️ ACX Instruments Stock Alert: " + productName + " is Low";
+        var body = "Dear Administrator,\n\n" +
+                   "An item in your ACX Instruments inventory has dropped below the low-stock threshold (5 items):\n\n" +
+                   "• Product Name: " + productName + "\n" +
+                   "• Catalogue Number: " + (catalogueNumber || "N/A") + "\n" +
+                   "• Current Stock: " + qtyString + "\n\n" +
+                   "Please log in to your dashboard to review or reorder stock.\n\n" +
+                   "Best regards,\n" +
+                   "ACX Instruments Inventory System";
+        MailApp.sendEmail(recipient, subject, body);
+      }
+    }
+  } catch (err) {
+    Logger.log("Failed to send low stock email: " + err.toString());
+  }
+}
+
+/**
+ * Sends a summary low stock alert email for bulk imports.
+ */
+function sendBulkLowStockEmail(lowStockLines) {
+  try {
+    var recipient = Session.getActiveUser().getEmail() || SpreadsheetApp.getActiveSpreadsheet().getOwner().getEmail();
+    if (recipient) {
+      var subject = "⚠️ ACX Instruments Bulk Stock Alert: Multiple Low Stock Items";
+      var body = "Dear Administrator,\n\n" +
+                 "Following a bulk data import, the following items in your inventory are below the threshold of 5:\n\n" +
+                 lowStockLines.join("\n") + "\n\n" +
+                 "Please log in to your dashboard to review or reorder stock.\n\n" +
+                 "Best regards,\n" +
+                 "ACX Instruments Inventory System";
+      MailApp.sendEmail(recipient, subject, body);
+    }
+  } catch (err) {
+    Logger.log("Failed to send bulk low stock email: " + err.toString());
   }
 }
