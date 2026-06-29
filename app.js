@@ -353,7 +353,7 @@ async function fetchInventory() {
         const result = await res.json();
         
         if (result.status === "success") {
-            inventoryData = result.inventory || [];
+            inventoryData = result.inventory || result.data || [];
             dispatchesData = result.dispatches || [];
             updateConnectionStatus(true, "Connected");
             applyFiltersAndRender();
