@@ -166,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('theme', 'light');
             showToast("Light Mode activated", "success");
         }
+        if (inventoryData && inventoryData.length > 0) {
+            renderCharts(inventoryData);
+        }
     });
 
     // Populate settings URL if saved
@@ -455,9 +458,9 @@ function applyFiltersAndRender() {
 
 // Render Chart.js Analytics
 function renderCharts(items) {
-    const isDark = document.body.classList.contains('dark') || (document.getElementById('theme-switch') && !document.getElementById('theme-switch').checked);
-    const textColor = isDark ? '#ffffff' : '#000000'; // Bold black shining for light, white for dark
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)';
+    const isDark = !document.body.classList.contains('light-theme');
+    const textColor = isDark ? '#ffffff' : '#000000'; // Bold shining black for light, white for dark
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)';
 
     // --- CHART 1: Stock Distribution ---
     const stockCanvas = document.getElementById('stock-dist-chart');
