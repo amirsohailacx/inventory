@@ -416,7 +416,22 @@ function applyFiltersAndRender() {
             (item["Specs"] && item["Specs"].toString().toLowerCase().includes(searchVal)) ||
             (item["Condition"] && item["Condition"].toString().toLowerCase().includes(searchVal));
             
-        const matchesCondition = (conditionVal === 'all' || item["Condition"] === conditionVal);
+        let matchesCondition = false;
+        if (conditionVal === 'all') {
+            matchesCondition = true;
+        } else {
+            const itemCond = (item["Condition"] || '').toString().trim().toLowerCase();
+            const filterCond = conditionVal.toLowerCase();
+            if (filterCond === 'new') {
+                matchesCondition = itemCond.includes('new') || itemCond.includes('pack');
+            } else if (filterCond === 'used') {
+                matchesCondition = itemCond.includes('used') || itemCond.includes('open');
+            } else if (filterCond === 'refurbished') {
+                matchesCondition = itemCond.includes('refurb') || itemCond.includes('renew');
+            } else {
+                matchesCondition = itemCond === filterCond;
+            }
+        }
         
         let matchesStock = true;
         const qty = parseInt(item.Quantity) || 0;
@@ -453,7 +468,7 @@ function applyFiltersAndRender() {
 
     updateStats(inventoryData);
     renderTable(filtered);
-    renderCharts(filtered);
+    renderCharts(inventoryData);
 }
 
 // Render Chart.js Analytics
