@@ -606,6 +606,29 @@ function renderCharts(items) {
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '72%',
+                onClick: (event, activeElements) => {
+                    if (activeElements.length > 0) {
+                        const index = activeElements[0].index;
+                        const labels = ['New', 'Used', 'Refurbished'];
+                        const clickedCondition = labels[index];
+                        
+                        const conditionFilterEl = document.getElementById('filter-condition');
+                        if (conditionFilterEl) {
+                            conditionFilterEl.value = clickedCondition;
+                            applyFiltersAndRender();
+                            showToast(`Filtering to show: ${clickedCondition} items`, "info");
+                            
+                            // Smooth scroll down to table view
+                            const tableContainer = document.querySelector('.table-container');
+                            if (tableContainer) {
+                                tableContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
+                        }
+                    }
+                },
+                onHover: (event, chartElement) => {
+                    event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+                },
                 plugins: {
                     legend: {
                         position: 'bottom',
