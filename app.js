@@ -456,8 +456,8 @@ function applyFiltersAndRender() {
 // Render Chart.js Analytics
 function renderCharts(items) {
     const isDark = document.body.classList.contains('dark') || (document.getElementById('theme-switch') && !document.getElementById('theme-switch').checked);
-    const textColor = isDark ? '#cbd5e1' : '#475569';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#ffffff' : '#000000'; // Bold black shining for light, white for dark
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)';
 
     // --- CHART 1: Stock Distribution ---
     const stockCanvas = document.getElementById('stock-dist-chart');
@@ -472,10 +472,20 @@ function renderCharts(items) {
         });
         const data = sortedItems.map(item => parseInt(item.Quantity) || 0);
 
-        const ctxStock = stockCanvas.getContext('2d');
-        const gradient = ctxStock.createLinearGradient(0, 0, 0, 280);
-        gradient.addColorStop(0, 'rgba(2, 132, 199, 0.9)'); // primary blue
-        gradient.addColorStop(1, 'rgba(56, 189, 248, 0.15)'); // light blue
+        // Beautiful distinct colors for each product bar
+        const barColors = [
+            'rgba(2, 132, 199, 0.85)',   // Blue
+            'rgba(139, 92, 246, 0.85)',  // Violet
+            'rgba(16, 185, 129, 0.85)',  // Emerald
+            'rgba(244, 63, 94, 0.85)',   // Rose
+            'rgba(245, 158, 11, 0.85)',  // Amber
+            'rgba(6, 182, 212, 0.85)',   // Cyan
+            'rgba(236, 72, 153, 0.85)',  // Pink
+            'rgba(99, 102, 241, 0.85)'   // Indigo
+        ];
+        const borderColors = [
+            '#0284c7', '#8b5cf6', '#10b981', '#f43f5e', '#f59e0b', '#06b6d4', '#ec4899', '#6366f1'
+        ];
 
         stockChartInstance = new Chart(stockCanvas, {
             type: 'bar',
@@ -484,8 +494,8 @@ function renderCharts(items) {
                 datasets: [{
                     label: 'Stock Quantity',
                     data: data,
-                    backgroundColor: gradient,
-                    borderColor: '#0284c7',
+                    backgroundColor: barColors.slice(0, data.length),
+                    borderColor: borderColors.slice(0, data.length),
                     borderWidth: 1.5,
                     borderRadius: 6
                 }]
@@ -500,11 +510,11 @@ function renderCharts(items) {
                 scales: {
                     x: {
                         grid: { display: false },
-                        ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                        ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' } }
                     },
                     y: {
                         grid: { color: gridColor },
-                        ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                        ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' } }
                     }
                 }
             }
@@ -516,12 +526,24 @@ function renderCharts(items) {
     if (conditionCanvas) {
         if (conditionChartInstance) conditionChartInstance.destroy();
 
-        // Tally conditions
+        // Tally conditions case-insensitively with robust matching
         const tallies = { 'New': 0, 'Used': 0, 'Refurbished': 0 };
         items.forEach(item => {
-            const cond = item["Condition"] || 'New';
-            if (tallies[cond] !== undefined) tallies[cond]++;
+            const cond = (item["Condition"] || '').toString().trim().toLowerCase();
+            if (cond.includes('new') || cond.includes('pack')) {
+                tallies['New']++;
+            } else if (cond.includes('used') || cond.includes('open')) {
+                tallies['Used']++;
+            } else if (cond.includes('refurb') || cond.includes('renew')) {
+                tallies['Refurbished']++;
+            } else if (cond !== '') {
+                // Fallback to New if non-empty but doesn't match standard keywords
+                tallies['New']++;
+            }
         });
+
+        // Sum of all values
+        const totalItemsCount = tallies['New'] + tallies['Used'] + tallies['Refurbished'];
 
         // Custom plugin to draw sum in the center of the doughnut
         const centerTextPlugin = {
@@ -536,16 +558,15 @@ function renderCharts(items) {
                 const centerX = (chartArea.left + chartArea.right) / 2;
                 const centerY = (chartArea.top + chartArea.bottom) / 2;
                 
-                ctx.font = "bold 1.5rem 'Plus Jakarta Sans', sans-serif";
+                ctx.font = "bold 1.6rem 'Plus Jakarta Sans', sans-serif";
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "center";
-                ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
+                ctx.fillStyle = isDark ? '#ffffff' : '#000000';
                 
-                const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                ctx.fillText(total, centerX, centerY - 10);
+                ctx.fillText(totalItemsCount, centerX, centerY - 10);
                 
-                ctx.font = "600 0.72rem 'Plus Jakarta Sans', sans-serif";
-                ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+                ctx.font = "700 0.72rem 'Plus Jakarta Sans', sans-serif";
+                ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
                 ctx.fillText("Total Items", centerX, centerY + 12);
                 ctx.save();
             }
@@ -575,7 +596,7 @@ function renderCharts(items) {
                         position: 'bottom',
                         labels: {
                             color: textColor,
-                            font: { family: 'Plus Jakarta Sans', size: 11, weight: '500' },
+                            font: { family: 'Plus Jakarta Sans', size: 11, weight: '700' },
                             padding: 15
                         }
                     },
