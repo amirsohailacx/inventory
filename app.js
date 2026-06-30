@@ -163,8 +163,8 @@ function unlockDashboard() {
 }
 
 // Initialize App
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("ACX Instruments App loaded: v9 (Details Modal)");
+function initApp() {
+    console.log("ACX Instruments App loaded: v10 (Safety Updates)");
     // Check if already authenticated in sessionStorage
     if (sessionStorage.getItem('authenticated') === 'true') {
         unlockDashboard();
@@ -424,7 +424,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Excel Drag and Drop Setup
     setupDragAndDrop();
-});
+}
+
+// Safely execute initApp regardless of script loading timing
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 // Toast system
 function showToast(message, type = "success") {
@@ -1855,7 +1862,7 @@ function updateBulkBar() {
 }
 
 // Bind Select-All Checkbox change in DOM
-document.addEventListener('DOMContentLoaded', () => {
+function initBulkOperations() {
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const bulkUpdateConditionBtn = document.getElementById('bulk-update-condition-btn');
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
@@ -1968,4 +1975,10 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(fetchInventory, 1000);
         });
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBulkOperations);
+} else {
+    initBulkOperations();
+}
