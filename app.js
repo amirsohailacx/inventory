@@ -627,18 +627,21 @@ function renderCharts(items) {
                         const labels = ['New', 'Used', 'Refurbished'];
                         const clickedCondition = labels[index];
                         
-                        const conditionFilterEl = document.getElementById('filter-condition');
-                        if (conditionFilterEl) {
-                            conditionFilterEl.value = clickedCondition;
-                            applyFiltersAndRender();
-                            showToast(`Filtering to show: ${clickedCondition} items`, "info");
-                            
-                            // Smooth scroll down to table view
-                            const tableContainer = document.querySelector('.table-container');
-                            if (tableContainer) {
-                                tableContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        // Defer to avoid destroying the chart inside its own event loop
+                        setTimeout(() => {
+                            const conditionFilterEl = document.getElementById('filter-condition');
+                            if (conditionFilterEl) {
+                                conditionFilterEl.value = clickedCondition;
+                                applyFiltersAndRender();
+                                showToast(`Filtering to show: ${clickedCondition} items`, "info");
+                                
+                                // Smooth scroll down to table view
+                                const tableContainer = document.querySelector('.table-container');
+                                if (tableContainer) {
+                                    tableContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                }
                             }
-                        }
+                        }, 50);
                     }
                 },
                 onHover: (event, chartElement) => {
