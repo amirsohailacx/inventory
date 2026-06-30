@@ -1604,3 +1604,44 @@ body.light-theme .bulk-actions-bar {
     }
 }
 
+/* Custom Main Content Layout Backgrounds */
+.main-content {
+    background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+}
+
+body.dark-theme .main-content,
+body:not(.light-theme) .main-content {
+    background: linear-gradient(135deg, #080c14 0%, #0f172a 100%);
+}
+
+/* Stats Cards Premium Upgrades */
+.stats-grid .stat-card {
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+    border-left: 4px solid var(--border-color);
+}
+
+.stats-grid .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08), 0 8px 12px -8px rgba(0, 0, 0, 0.08);
+}
+
+body:not(.light-theme) .stats-grid .stat-card:hover {
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.35), 0 8px 12px -8px rgba(0, 0, 0, 0.35);
+}
+
+/* Color Coding and subtle gradient overlays for Stats Grid Cards */
+.stats-grid .stat-card:nth-child(1) {
+    border-left: 4px solid var(--primary) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(2, 132, 199, 0.05) 100%);
+}
+
+.stats-grid .stat-card:nth-child(2) {
+    border-left: 4px solid var(--success) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(16, 185, 129, 0.05) 100%);
+}
+
+.stats-grid .stat-card:nth-child(3) {
+    border-left: 4px solid var(--danger) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.05) 100%);
+}
+
