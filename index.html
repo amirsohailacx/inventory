@@ -124,15 +124,15 @@
 
                 <!-- Charts Area -->
                 <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-                    <div class="stat-card" style="display: block; padding: 1.5rem;">
+                    <div class="stat-card" style="display: block; padding: 1.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
                         <h3 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-chart-bar" style="color: var(--primary);"></i> Stock Levels by Product</h3>
-                        <div style="position: relative; height: 220px; width: 100%;">
+                        <div style="position: relative; height: 280px; width: 100%;">
                             <canvas id="stock-dist-chart"></canvas>
                         </div>
                     </div>
-                    <div class="stat-card" style="display: block; padding: 1.5rem;">
+                    <div class="stat-card" style="display: block; padding: 1.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
                         <h3 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-chart-pie" style="color: var(--success);"></i> Condition Breakdown</h3>
-                        <div style="position: relative; height: 220px; width: 100%;">
+                        <div style="position: relative; height: 280px; width: 100%;">
                             <canvas id="condition-ratio-chart"></canvas>
                         </div>
                     </div>

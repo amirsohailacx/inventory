@@ -472,6 +472,11 @@ function renderCharts(items) {
         });
         const data = sortedItems.map(item => parseInt(item.Quantity) || 0);
 
+        const ctxStock = stockCanvas.getContext('2d');
+        const gradient = ctxStock.createLinearGradient(0, 0, 0, 280);
+        gradient.addColorStop(0, 'rgba(2, 132, 199, 0.9)'); // primary blue
+        gradient.addColorStop(1, 'rgba(56, 189, 248, 0.15)'); // light blue
+
         stockChartInstance = new Chart(stockCanvas, {
             type: 'bar',
             data: {
@@ -479,10 +484,10 @@ function renderCharts(items) {
                 datasets: [{
                     label: 'Stock Quantity',
                     data: data,
-                    backgroundColor: 'rgba(2, 132, 199, 0.85)',
-                    borderColor: 'rgb(2, 132, 199)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    backgroundColor: gradient,
+                    borderColor: '#0284c7',
+                    borderWidth: 1.5,
+                    borderRadius: 6
                 }]
             },
             options: {
@@ -518,6 +523,34 @@ function renderCharts(items) {
             if (tallies[cond] !== undefined) tallies[cond]++;
         });
 
+        // Custom plugin to draw sum in the center of the doughnut
+        const centerTextPlugin = {
+            id: 'centerText',
+            beforeDraw: function(chart) {
+                const width = chart.width;
+                const height = chart.height;
+                const ctx = chart.ctx;
+                ctx.restore();
+                
+                const chartArea = chart.chartArea;
+                const centerX = (chartArea.left + chartArea.right) / 2;
+                const centerY = (chartArea.top + chartArea.bottom) / 2;
+                
+                ctx.font = "bold 1.5rem 'Plus Jakarta Sans', sans-serif";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "center";
+                ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
+                
+                const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                ctx.fillText(total, centerX, centerY - 10);
+                
+                ctx.font = "600 0.72rem 'Plus Jakarta Sans', sans-serif";
+                ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+                ctx.fillText("Total Items", centerX, centerY + 12);
+                ctx.save();
+            }
+        };
+
         conditionChartInstance = new Chart(conditionCanvas, {
             type: 'doughnut',
             data: {
@@ -527,7 +560,7 @@ function renderCharts(items) {
                     backgroundColor: [
                         'rgba(16, 185, 129, 0.85)', // Green
                         'rgba(245, 158, 11, 0.85)', // Amber
-                        'rgba(99, 102, 241, 0.85)'  // Indigo
+                        'rgba(139, 92, 246, 0.85)'  // Violet
                     ],
                     borderColor: isDark ? '#1e293b' : '#ffffff',
                     borderWidth: 2
@@ -536,17 +569,20 @@ function renderCharts(items) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '72%',
                 plugins: {
                     legend: {
-                        position: 'right',
+                        position: 'bottom',
                         labels: {
                             color: textColor,
-                            font: { family: 'Plus Jakarta Sans', size: 11 }
+                            font: { family: 'Plus Jakarta Sans', size: 11, weight: '500' },
+                            padding: 15
                         }
                     },
                     tooltip: { boxPadding: 5 }
                 }
-            }
+            },
+            plugins: [centerTextPlugin]
         });
     }
 }
@@ -585,7 +621,6 @@ function renderTable(items) {
     items.forEach(item => {
         const rawQty = item.Quantity !== undefined && item.Quantity !== null ? item.Quantity : '0';
         const qtyNum = parseInt(rawQty) || 0;
-        const isLow = qtyNum < 10;
         
         // Define Condition pill
         const conditionVal = item["Condition"] || '';
@@ -600,6 +635,16 @@ function renderTable(items) {
                 conditionBadge = `<span class="badge badge-packing">${escapeHtml(conditionVal)}</span>`;
             }
         }
+
+        // Define Quantity Badge with custom colors based on levels
+        let qtyBadge = '';
+        if (qtyNum === 0) {
+            qtyBadge = `<span class="badge" style="background-color: rgba(239, 68, 68, 0.12); color: var(--danger); font-weight: 700; border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.82rem; display: inline-block; min-width: 55px; text-align: center;">0 Pcs</span>`;
+        } else if (qtyNum < 5) {
+            qtyBadge = `<span class="badge" style="background-color: rgba(245, 158, 11, 0.12); color: var(--warning); font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.2); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.82rem; display: inline-block; min-width: 55px; text-align: center;">${escapeHtml(rawQty)}</span>`;
+        } else {
+            qtyBadge = `<span class="badge" style="background-color: rgba(16, 185, 129, 0.12); color: var(--success); font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.82rem; display: inline-block; min-width: 55px; text-align: center;">${escapeHtml(rawQty)}</span>`;
+        }
         
         // Clickable Product Row
         const tr = document.createElement('tr');
@@ -608,12 +653,10 @@ function renderTable(items) {
         tr.innerHTML = `
             <td style="text-align: center; padding: 0.75rem 1rem;"><input type="checkbox" class="row-checkbox" data-row="${item.row_index}"></td>
             <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
-            <td>${escapeHtml(item["Product Name"] || '')}</td>
-            <td style="text-align: center;">
-                <span class="qty-display ${isLow ? 'low-stock' : ''}" style="font-weight: 600; font-size: 0.92rem;">${escapeHtml(rawQty)}</span>
-            </td>
+            <td style="font-weight: 600; color: var(--text-primary);">${escapeHtml(item["Product Name"] || '')}</td>
+            <td style="text-align: center;">${qtyBadge}</td>
             <td>${conditionBadge}</td>
-            <td><code>${escapeHtml(item["Catalogue Number"] || '')}</code></td>
+            <td><code style="background-color: rgba(2, 132, 199, 0.08); color: var(--primary); border: 1px solid rgba(2, 132, 199, 0.15); padding: 0.25rem 0.5rem; border-radius: var(--radius-xs); font-family: monospace; font-weight: 600; font-size: 0.85rem;">${escapeHtml(item["Catalogue Number"] || '')}</code></td>
             <td><small style="color: var(--text-secondary); text-overflow: ellipsis; display: block; max-width: 250px; overflow: hidden; white-space: nowrap;">${escapeHtml(item["Specs"] || '')}</small></td>
             <td style="text-align: center;">
                 <div class="action-cell">
