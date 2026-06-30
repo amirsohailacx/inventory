@@ -506,6 +506,18 @@ function renderCharts(items) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: (event, activeElements) => {
+                    if (activeElements.length > 0) {
+                        const index = activeElements[0].index;
+                        const clickedItem = sortedItems[index];
+                        if (clickedItem) {
+                            openProductModal(clickedItem);
+                        }
+                    }
+                },
+                onHover: (event, chartElement) => {
+                    event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: { boxPadding: 5 }
