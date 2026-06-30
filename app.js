@@ -177,18 +177,25 @@ document.addEventListener('DOMContentLoaded', () => {
         
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const passwordInput = document.getElementById('login-password');
-            const hashedInput = await sha256(passwordInput.value);
-            const targetHash = localStorage.getItem('dashboard_password_hash') || CORRECT_PASSWORD_HASH;
-            
-            if (hashedInput === targetHash) {
-                sessionStorage.setItem('authenticated', 'true');
-                loginError.classList.add('hidden');
-                unlockDashboard();
-            } else {
+            try {
+                const passwordInput = document.getElementById('login-password');
+                const hashedInput = await sha256(passwordInput.value);
+                const targetHash = localStorage.getItem('dashboard_password_hash') || CORRECT_PASSWORD_HASH;
+                
+                if (hashedInput === targetHash) {
+                    sessionStorage.setItem('authenticated', 'true');
+                    loginError.classList.add('hidden');
+                    unlockDashboard();
+                } else {
+                    loginError.classList.remove('hidden');
+                    loginError.textContent = "❌ Incorrect password. Please try again.";
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (err) {
+                console.error("Login submission error:", err);
                 loginError.classList.remove('hidden');
-                passwordInput.value = '';
-                passwordInput.focus();
+                loginError.textContent = "❌ Cache Error: Please hold Shift and click the reload button to refresh your browser cache.";
             }
         });
 
