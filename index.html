@@ -13,7 +13,14 @@
     <!-- SheetJS & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="style.css?v=20">
+    <script>
+        (function() {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'style.css?v=' + new Date().getTime();
+            document.head.appendChild(link);
+        })();
+    </script>
 </head>
 <body>
     <!-- Login Gate Overlay -->
@@ -579,6 +586,12 @@
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=30"></script>
+    <script>
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'app.js?v=' + new Date().getTime();
+            document.body.appendChild(script);
+        })();
+    </script>
 </body>
 </html>
