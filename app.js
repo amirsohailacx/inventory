@@ -39,6 +39,10 @@ const statTotalProducts = document.getElementById('stat-total-products');
 const statTotalStock = document.getElementById('stat-total-stock');
 const statLowStock = document.getElementById('stat-low-stock');
 
+// Charts Instances
+let stockChartInstance = null;
+let conditionChartInstance = null;
+
 // Excel Import DOM
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -187,6 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Update Title
             tabTitle.textContent = tab.textContent.trim();
+            
+            // Render specific views on switch
+            if (contentId === 'dispatches-log-tab') {
+                renderDispatchesTable();
+            } else if (contentId === 'dashboard-tab') {
+                applyFiltersAndRender();
+            }
         });
     });
 
@@ -218,16 +229,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Export Current View Button
     exportBtn.addEventListener('click', exportToCSV);
 
+    // Dispatches Search & Export Events
+    const dispatchSearchInput = document.getElementById('dispatch-search-input');
+    const exportDispatchesBtn = document.getElementById('export-dispatches-btn');
+    if (dispatchSearchInput) dispatchSearchInput.addEventListener('input', renderDispatchesTable);
+    if (exportDispatchesBtn) exportDispatchesBtn.addEventListener('click', exportDispatchesToCSV);
+
     // Search and Filter Events
     searchInput.addEventListener('input', applyFiltersAndRender);
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.getAttribute('data-filter');
-            applyFiltersAndRender();
-        });
-    });
+    
+    // Add select dropdown filter listeners
+    const filterConditionEl = document.getElementById('filter-condition');
+    const filterStockEl = document.getElementById('filter-stock');
+    if (filterConditionEl) filterConditionEl.addEventListener('change', applyFiltersAndRender);
+    if (filterStockEl) filterStockEl.addEventListener('change', applyFiltersAndRender);
 
     // Sorting Headers Click Event
     sortableHeaders.forEach(header => {
@@ -385,17 +400,32 @@ function updateStats(items) {
 function applyFiltersAndRender() {
     const searchVal = searchInput.value.toLowerCase();
     
+    const filterConditionEl = document.getElementById('filter-condition');
+    const filterStockEl = document.getElementById('filter-stock');
+    
+    const conditionVal = filterConditionEl ? filterConditionEl.value : 'all';
+    const stockVal = filterStockEl ? filterStockEl.value : 'all';
+    
     let filtered = inventoryData.filter(item => {
         const matchesSearch = 
             (item["Product Name"] && item["Product Name"].toString().toLowerCase().includes(searchVal)) ||
             (item["Catalogue Number"] && item["Catalogue Number"].toString().toLowerCase().includes(searchVal)) ||
             (item["Specs"] && item["Specs"].toString().toLowerCase().includes(searchVal)) ||
             (item["Condition"] && item["Condition"].toString().toLowerCase().includes(searchVal));
+            
+        const matchesCondition = (conditionVal === 'all' || item["Condition"] === conditionVal);
         
-        if (currentFilter === 'low') {
-            return matchesSearch && (parseInt(item.Quantity) || 0) < 10;
+        let matchesStock = true;
+        const qty = parseInt(item.Quantity) || 0;
+        if (stockVal === 'in_stock') {
+            matchesStock = qty >= 5;
+        } else if (stockVal === 'low_stock') {
+            matchesStock = qty < 5 && qty > 0;
+        } else if (stockVal === 'out_of_stock') {
+            matchesStock = qty === 0;
         }
-        return matchesSearch;
+        
+        return matchesSearch && matchesCondition && matchesStock;
     });
 
     // Apply Sorting
@@ -420,13 +450,112 @@ function applyFiltersAndRender() {
 
     updateStats(inventoryData);
     renderTable(filtered);
+    renderCharts(filtered);
+}
+
+// Render Chart.js Analytics
+function renderCharts(items) {
+    const isDark = document.body.classList.contains('dark') || (document.getElementById('theme-switch') && !document.getElementById('theme-switch').checked);
+    const textColor = isDark ? '#cbd5e1' : '#475569';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+    // --- CHART 1: Stock Distribution ---
+    const stockCanvas = document.getElementById('stock-dist-chart');
+    if (stockCanvas) {
+        if (stockChartInstance) stockChartInstance.destroy();
+        
+        // Take top 8 items to avoid overcrowding
+        const sortedItems = [...items].sort((a, b) => (parseInt(b.Quantity) || 0) - (parseInt(a.Quantity) || 0)).slice(0, 8);
+        const labels = sortedItems.map(item => {
+            const name = item["Product Name"] || 'N/A';
+            return name.length > 15 ? name.substring(0, 15) + '...' : name;
+        });
+        const data = sortedItems.map(item => parseInt(item.Quantity) || 0);
+
+        stockChartInstance = new Chart(stockCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Stock Quantity',
+                    data: data,
+                    backgroundColor: 'rgba(2, 132, 199, 0.85)',
+                    borderColor: 'rgb(2, 132, 199)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { boxPadding: 5 }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                    },
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- CHART 2: Condition Ratio ---
+    const conditionCanvas = document.getElementById('condition-ratio-chart');
+    if (conditionCanvas) {
+        if (conditionChartInstance) conditionChartInstance.destroy();
+
+        // Tally conditions
+        const tallies = { 'New': 0, 'Used': 0, 'Refurbished': 0 };
+        items.forEach(item => {
+            const cond = item["Condition"] || 'New';
+            if (tallies[cond] !== undefined) tallies[cond]++;
+        });
+
+        conditionChartInstance = new Chart(conditionCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['New', 'Used', 'Refurbished'],
+                datasets: [{
+                    data: [tallies['New'], tallies['Used'], tallies['Refurbished']],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.85)', // Green
+                        'rgba(245, 158, 11, 0.85)', // Amber
+                        'rgba(99, 102, 241, 0.85)'  // Indigo
+                    ],
+                    borderColor: isDark ? '#1e293b' : '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: textColor,
+                            font: { family: 'Plus Jakarta Sans', size: 11 }
+                        }
+                    },
+                    tooltip: { boxPadding: 5 }
+                }
+            }
+        });
+    }
 }
 
 // Render Loading Spinner
 function renderLoadingState() {
     inventoryTbody.innerHTML = `
         <tr>
-            <td colspan="7" class="loading-state">
+            <td colspan="8" class="loading-state">
                 <i class="fa-solid fa-spinner fa-spin"></i> Refreshing inventory records...
             </td>
         </tr>
@@ -437,7 +566,7 @@ function renderLoadingState() {
 function renderEmptyState(message) {
     inventoryTbody.innerHTML = `
         <tr>
-            <td colspan="7" class="empty-state">
+            <td colspan="8" class="empty-state">
                 <i class="fa-solid fa-circle-question" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;"></i>
                 ${message}
             </td>
@@ -477,14 +606,11 @@ function renderTable(items) {
         tr.className = 'main-row';
         tr.id = `product-row-${item.row_index}`;
         tr.innerHTML = `
+            <td style="text-align: center; padding: 0.75rem 1rem;"><input type="checkbox" class="row-checkbox" data-row="${item.row_index}"></td>
             <td><small style="color: var(--text-muted); font-weight: 600;">${escapeHtml(item["No."] || '')}</small></td>
             <td>${escapeHtml(item["Product Name"] || '')}</td>
             <td style="text-align: center;">
-                <div class="quantity-control">
-                    <button class="qty-btn dec-btn" data-row="${item.row_index}" data-raw-qty="${rawQty}"><i class="fa-solid fa-minus"></i></button>
-                    <span class="qty-value ${isLow ? 'low-stock' : ''}" data-row="${item.row_index}" style="cursor: pointer;" title="Double-click to type quantity">${escapeHtml(rawQty)}</span>
-                    <button class="qty-btn inc-btn" data-row="${item.row_index}" data-raw-qty="${rawQty}"><i class="fa-solid fa-plus"></i></button>
-                </div>
+                <span class="qty-display ${isLow ? 'low-stock' : ''}" style="font-weight: 600; font-size: 0.92rem;">${escapeHtml(rawQty)}</span>
             </td>
             <td>${conditionBadge}</td>
             <td><code>${escapeHtml(item["Catalogue Number"] || '')}</code></td>
@@ -501,7 +627,7 @@ function renderTable(items) {
         // Row Click Listener (Open Detail Modal)
         tr.addEventListener('click', (e) => {
             // Ignore click if clicking interactive cells
-            if (e.target.closest('.qty-btn') || e.target.closest('.qty-value') || e.target.closest('.delete-btn') || e.target.closest('input')) {
+            if (e.target.closest('.delete-btn') || e.target.closest('input')) {
                 return;
             }
             openProductModal(item);
@@ -510,56 +636,11 @@ function renderTable(items) {
         inventoryTbody.appendChild(tr);
     });
 
-    // Wire up event listeners to controls
-    document.querySelectorAll('.dec-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const newQty = adjustQuantityString(btn.dataset.rawQty, -1);
-            updateQuantity(btn.dataset.row, newQty);
-        });
-    });
-    document.querySelectorAll('.inc-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const newQty = adjustQuantityString(btn.dataset.rawQty, 1);
-            updateQuantity(btn.dataset.row, newQty);
-        });
-    });
+    // Wire up delete listener
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             deleteItem(btn.dataset.row);
-        });
-    });
-
-    // Inline Editing
-    document.querySelectorAll('.qty-value').forEach(span => {
-        span.addEventListener('dblclick', () => {
-            const rowIndex = span.dataset.row;
-            const currentQty = span.textContent;
-            
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = currentQty;
-            input.className = 'qty-input-field';
-            
-            span.replaceWith(input);
-            input.focus();
-            
-            const saveInlineEdit = () => {
-                const newQty = input.value.trim();
-                if (newQty !== '') {
-                    updateQuantity(rowIndex, newQty);
-                } else {
-                    applyFiltersAndRender();
-                }
-            };
-            
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') saveInlineEdit();
-                if (e.key === 'Escape') applyFiltersAndRender();
-            });
-            input.addEventListener('blur', saveInlineEdit);
         });
     });
 }
@@ -1471,3 +1552,213 @@ async function saveProductImageUrl(imageData) {
         showToast("Failed to save image.", "error");
     }
 }
+
+// ========================================================
+// Dispatches Tab Render & Export Operations
+// ========================================================
+function renderDispatchesTable() {
+    const tbody = document.getElementById('dispatches-tbody');
+    const totalCountEl = document.getElementById('stat-total-dispatches');
+    const searchInputEl = document.getElementById('dispatch-search-input');
+    const searchVal = searchInputEl ? searchInputEl.value.toLowerCase() : '';
+    
+    if (!tbody) return;
+    
+    // Sort dispatches descending (newest first)
+    const logs = [...dispatchesData].reverse();
+    
+    const filteredLogs = logs.filter(log => {
+        return (
+            (log["Catalogue Number"] && log["Catalogue Number"].toString().toLowerCase().includes(searchVal)) ||
+            (log["Customer"] && log["Customer"].toString().toLowerCase().includes(searchVal)) ||
+            (log["Dispatch Date"] && log["Dispatch Date"].toString().toLowerCase().includes(searchVal)) ||
+            (log["Tracking Details"] && log["Tracking Details"].toString().toLowerCase().includes(searchVal))
+        );
+    });
+    
+    if (totalCountEl) totalCountEl.textContent = filteredLogs.length;
+    
+    if (filteredLogs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state">
+                    <i class="fa-solid fa-circle-question" style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;"></i>
+                    No shipment logs found matching search criteria.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = filteredLogs.map(log => `
+        <tr>
+            <td><strong>${escapeHtml(log["Catalogue Number"] || 'N/A')}</strong></td>
+            <td>${escapeHtml(log["Customer"] || 'N/A')}</td>
+            <td><i class="fa-regular fa-calendar-days" style="color: var(--text-muted); margin-right: 0.25rem;"></i> ${escapeHtml(log["Dispatch Date"] || 'N/A')}</td>
+            <td><span class="badge blue" style="background-color: var(--primary-light); color: var(--primary); font-weight: 500;">${escapeHtml(log["Tracking Details"] || 'None')}</span></td>
+            <td><span style="font-weight: 600; color: var(--text-primary); white-space: nowrap;">${escapeHtml(log["Quantity"] || '0')} pcs</span></td>
+        </tr>
+    `).join('');
+}
+
+function exportDispatchesToCSV() {
+    if (dispatchesData.length === 0) {
+        showToast("No shipment logs to export.", "warning");
+        return;
+    }
+    
+    const headers = ["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity"];
+    const csvRows = [headers.join(",")];
+    
+    dispatchesData.forEach(log => {
+        const values = headers.map(header => {
+            const val = (log[header] || "").toString().replace(/"/g, '""');
+            return `"${val}"`;
+        });
+        csvRows.push(values.join(","));
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `dispatches_log_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Shipment logs exported to CSV successfully!", "success");
+}
+
+// ========================================================
+// Bulk Inventory Selection & Operations
+// ========================================================
+function updateBulkBar() {
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    const countEl = document.getElementById('bulk-select-count');
+    
+    if (!bulkBar) return;
+    
+    if (checkedBoxes.length > 0) {
+        if (countEl) countEl.textContent = `${checkedBoxes.length} item${checkedBoxes.length > 1 ? 's' : ''} selected`;
+        bulkBar.classList.remove('hidden');
+    } else {
+        bulkBar.classList.add('hidden');
+    }
+}
+
+// Bind Select-All Checkbox change in DOM
+document.addEventListener('DOMContentLoaded', () => {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const bulkUpdateConditionBtn = document.getElementById('bulk-update-condition-btn');
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    const bulkClearSelectionBtn = document.getElementById('bulk-clear-selection-btn');
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', () => {
+            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+            rowCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+            updateBulkBar();
+        });
+    }
+
+    if (bulkClearSelectionBtn) {
+        bulkClearSelectionBtn.addEventListener('click', () => {
+            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+            rowCheckboxes.forEach(cb => cb.checked = false);
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            updateBulkBar();
+        });
+    }
+
+    if (bulkUpdateConditionBtn) {
+        bulkUpdateConditionBtn.addEventListener('click', async () => {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+            
+            const newCondition = prompt("Enter new condition for selected items (New, Used, Refurbished):");
+            if (!newCondition) return;
+            
+            bulkUpdateConditionBtn.disabled = true;
+            bulkUpdateConditionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+            showToast(`Updating condition for ${checkedBoxes.length} items...`, "info");
+            
+            let successCount = 0;
+            for (let cb of checkedBoxes) {
+                const rowIndex = cb.dataset.row;
+                try {
+                    await fetch(googleScriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'update_field',
+                            row_index: rowIndex,
+                            column: 4, // Column D (Condition)
+                            value: newCondition
+                        })
+                    });
+                    successCount++;
+                } catch (e) {
+                    console.error("Bulk condition update failed for row " + rowIndex, e);
+                }
+            }
+            
+            showToast(`Successfully updated condition for ${successCount} items!`, "success");
+            bulkUpdateConditionBtn.disabled = false;
+            bulkUpdateConditionBtn.innerHTML = '<i class="fa-solid fa-circle-info"></i> Set Condition';
+            
+            // Clear selection & Refresh
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            checkedBoxes.forEach(cb => cb.checked = false);
+            updateBulkBar();
+            setTimeout(fetchInventory, 1000);
+        });
+    }
+
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', async () => {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+            
+            if (!confirm(`Are you sure you want to permanently delete these ${checkedBoxes.length} items from the Google Sheet?`)) {
+                return;
+            }
+            
+            bulkDeleteBtn.disabled = true;
+            bulkDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+            showToast(`Deleting ${checkedBoxes.length} items from database...`, "info");
+            
+            // Delete descending order of rows to avoid row index shifting issues!
+            const rowIndices = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.row)).sort((a, b) => b - a);
+            
+            let successCount = 0;
+            for (let rowIndex of rowIndices) {
+                try {
+                    await fetch(googleScriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'delete',
+                            row_index: rowIndex
+                        })
+                    });
+                    successCount++;
+                } catch (e) {
+                    console.error("Bulk delete failed for row " + rowIndex, e);
+                }
+            }
+            
+            showToast(`Deleted ${successCount} items from database!`, "success");
+            bulkDeleteBtn.disabled = false;
+            bulkDeleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+            
+            // Clear selection & Refresh
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            checkedBoxes.forEach(cb => cb.checked = false);
+            updateBulkBar();
+            setTimeout(fetchInventory, 1000);
+        });
+    }
+});

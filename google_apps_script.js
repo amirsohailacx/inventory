@@ -120,6 +120,14 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     } 
     
+    else if (action === "update_field") {
+      var rowIndex = parseInt(params.row_index);
+      var column = parseInt(params.column);
+      inventorySheet.getRange(rowIndex, column).setValue(params.value);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Field updated successfully" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
     else if (action === "delete") {
       var rowIndex = parseInt(params.row_index);
       inventorySheet.deleteRow(rowIndex);

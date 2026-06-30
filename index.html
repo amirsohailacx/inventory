@@ -10,9 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS (Excel Parser) -->
+    <!-- SheetJS & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=12">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
     <!-- Login Gate Overlay -->
@@ -51,6 +52,9 @@
                 </button>
                 <button class="nav-btn" data-tab="import-tab">
                     <i class="fa-solid fa-file-import"></i> Excel Import
+                </button>
+                <button class="nav-btn" data-tab="dispatches-log-tab">
+                    <i class="fa-solid fa-truck-ramp-box"></i> Dispatches Log
                 </button>
                 <button class="nav-btn" data-tab="settings-tab">
                     <i class="fa-solid fa-gear"></i> Settings
@@ -118,6 +122,22 @@
                     </div>
                 </div>
 
+                <!-- Charts Area -->
+                <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+                    <div class="stat-card" style="display: block; padding: 1.5rem;">
+                        <h3 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-chart-bar" style="color: var(--primary);"></i> Stock Levels by Product</h3>
+                        <div style="position: relative; height: 220px; width: 100%;">
+                            <canvas id="stock-dist-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="display: block; padding: 1.5rem;">
+                        <h3 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-chart-pie" style="color: var(--success);"></i> Condition Breakdown</h3>
+                        <div style="position: relative; height: 220px; width: 100%;">
+                            <canvas id="condition-ratio-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Filters & Search Toolbar -->
                 <div class="toolbar">
                     <div class="search-box">
@@ -125,8 +145,18 @@
                         <input type="text" id="search-input" placeholder="Search product, catalogue number, specs...">
                     </div>
                     <div class="filter-actions">
-                        <button class="filter-btn active" data-filter="all">All Items</button>
-                        <button class="filter-btn" data-filter="low">Low Stock</button>
+                        <select id="filter-condition" class="filter-select" style="padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary); cursor: pointer; outline: none; font-size: 0.85rem; font-weight: 500;">
+                            <option value="all">All Conditions</option>
+                            <option value="New">New</option>
+                            <option value="Used">Used</option>
+                            <option value="Refurbished">Refurbished</option>
+                        </select>
+                        <select id="filter-stock" class="filter-select" style="padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary); cursor: pointer; outline: none; font-size: 0.85rem; font-weight: 500;">
+                            <option value="all">All Stock Statuses</option>
+                            <option value="in_stock">In Stock (>= 5)</option>
+                            <option value="low_stock">Low Stock (< 5)</option>
+                            <option value="out_of_stock">Out of Stock (0)</option>
+                        </select>
                         <button class="export-btn" id="export-btn" title="Export current list to CSV">
                             <i class="fa-solid fa-file-export"></i> Export
                         </button>
@@ -149,6 +179,7 @@
                     <table class="inventory-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px; text-align: center; padding: 0.75rem 1rem;"><input type="checkbox" id="select-all-checkbox"></th>
                                 <th class="sortable-header" data-sort="No."><div class="th-content">No. <i class="fa-solid fa-sort"></i></div></th>
                                 <th class="sortable-header" data-sort="Product Name"><div class="th-content">Product Name <i class="fa-solid fa-sort"></i></div></th>
                                 <th class="sortable-header" data-sort="Quantity"><div class="th-content center">Quantity <i class="fa-solid fa-sort"></i></div></th>
@@ -275,6 +306,57 @@
                                 <i class="fa-solid fa-cloud-arrow-up"></i> Import <span id="import-count-badge">0</span> Items
                             </button>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3.5: Dispatches Log -->
+            <section id="dispatches-log-tab" class="tab-content">
+                <!-- Dispatches Log Header -->
+                <div class="stats-grid" style="grid-template-columns: 1fr; margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-icon indigo"><i class="fa-solid fa-truck-fast"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Completed Dispatches</span>
+                            <span class="stat-value" id="stat-total-dispatches">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dispatches Search/Filter Toolbar -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="dispatch-search-input" placeholder="Search customer, catalogue number, tracking...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="export-btn" id="export-dispatches-btn" title="Export shipment log to CSV">
+                            <i class="fa-solid fa-file-export"></i> Export Logs
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dispatches Table Card -->
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table class="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Catalogue Number</th>
+                                    <th>Customer Name</th>
+                                    <th>Dispatch Date</th>
+                                    <th>Tracking / Delivery Details</th>
+                                    <th>Quantity Shipped</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dispatches-tbody">
+                                <tr>
+                                    <td colspan="5" class="empty-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading shipment logs...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -482,9 +564,21 @@
         </div>
     </div>
 
+    <!-- Floating Bulk Actions Drawer -->
+    <div id="bulk-actions-bar" class="bulk-actions-bar hidden">
+        <div class="bulk-info">
+            <span class="bulk-count" id="bulk-select-count">0 items selected</span>
+        </div>
+        <div class="bulk-buttons">
+            <button class="bulk-btn" id="bulk-update-condition-btn"><i class="fa-solid fa-circle-info"></i> Set Condition</button>
+            <button class="bulk-btn danger" id="bulk-delete-btn"><i class="fa-solid fa-trash-can"></i> Delete</button>
+            <button class="bulk-btn secondary" id="bulk-clear-selection-btn">Cancel</button>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=24"></script>
 </body>
 </html>

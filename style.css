@@ -1505,3 +1505,102 @@ body.light-theme .modal-left-panel {
     color: var(--primary);
 }
 
+/* ========================================================
+   Floating Bulk Actions Bar Styling
+   ======================================================== */
+.bulk-actions-bar {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(30, 41, 59, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: var(--radius-md);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+    padding: 1rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    z-index: 2000;
+    min-width: 550px;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: var(--transition);
+}
+
+body.light-theme .bulk-actions-bar {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(2, 132, 199, 0.15);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.05);
+}
+
+.bulk-info {
+    display: flex;
+    align-items: center;
+}
+
+.bulk-count {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.bulk-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.bulk-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.bulk-btn:hover {
+    background-color: var(--bg-input);
+}
+
+.bulk-btn.danger {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.bulk-btn.danger:hover {
+    background-color: var(--danger);
+    color: white;
+}
+
+.bulk-btn.secondary {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.bulk-btn.secondary:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+@keyframes slideUp {
+    from {
+        bottom: -5rem;
+        opacity: 0;
+    }
+    to {
+        bottom: 2rem;
+        opacity: 1;
+    }
+}
+
