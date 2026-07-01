@@ -2199,6 +2199,20 @@ function initBulkOperations() {
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
     const bulkClearSelectionBtn = document.getElementById('bulk-clear-selection-btn');
 
+    // Document Printing DOM Elements
+    const printDocsModal = document.getElementById('print-docs-modal');
+    const closePrintDocsModalBtn = document.getElementById('close-print-docs-modal-btn');
+    const printCustomerNameInput = document.getElementById('print-customer-name');
+    const printEmployeeSelect = document.getElementById('print-employee-select');
+    const printTrackingInfoInput = document.getElementById('print-tracking-info');
+    const btnPrintTabPacking = document.getElementById('btn-print-tab-packing');
+    const btnPrintTabDelivery = document.getElementById('btn-print-tab-delivery');
+    const modalPrintPreviewContent = document.getElementById('modal-print-preview-content');
+    const modalPrintConfirmBtn = document.getElementById('modal-print-confirm-btn');
+
+    let activePrintTab = 'packing'; // 'packing' or 'delivery'
+    let selectedPrintItems = [];
+
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', () => {
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
@@ -2227,17 +2241,164 @@ function initBulkOperations() {
             const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
             if (checkedBoxes.length === 0) return;
             
-            const selectedItems = [];
+            selectedPrintItems = [];
             checkedBoxes.forEach(cb => {
                 const rowIndex = parseInt(cb.dataset.row);
                 const item = inventoryData.find(i => parseInt(i.row_index) === rowIndex);
-                if (item) selectedItems.push(item);
+                if (item) selectedPrintItems.push(item);
             });
             
-            if (selectedItems.length > 0) {
-                generateAndPrintPackingSlip(selectedItems);
+            if (selectedPrintItems.length > 0) {
+                printCustomerNameInput.value = '';
+                printTrackingInfoInput.value = '';
+                populateEmployeeDropdowns(); 
+                
+                printDocsModal.classList.remove('hidden');
+                activePrintTab = 'packing';
+                
+                btnPrintTabPacking.classList.add('active');
+                btnPrintTabPacking.style.background = 'var(--primary)';
+                btnPrintTabPacking.style.color = 'white';
+                
+                btnPrintTabDelivery.classList.remove('active');
+                btnPrintTabDelivery.style.background = 'none';
+                btnPrintTabDelivery.style.color = 'var(--text-secondary)';
+                
+                updatePrintDocsPreview();
             }
         });
+    }
+
+    if (closePrintDocsModalBtn) {
+        closePrintDocsModalBtn.addEventListener('click', () => {
+            printDocsModal.classList.add('hidden');
+        });
+    }
+
+    if (btnPrintTabPacking) {
+        btnPrintTabPacking.addEventListener('click', () => {
+            activePrintTab = 'packing';
+            btnPrintTabPacking.classList.add('active');
+            btnPrintTabPacking.style.background = 'var(--primary)';
+            btnPrintTabPacking.style.color = 'white';
+            
+            btnPrintTabDelivery.classList.remove('active');
+            btnPrintTabDelivery.style.background = 'none';
+            btnPrintTabDelivery.style.color = 'var(--text-secondary)';
+            updatePrintDocsPreview();
+        });
+    }
+
+    if (btnPrintTabDelivery) {
+        btnPrintTabDelivery.addEventListener('click', () => {
+            activePrintTab = 'delivery';
+            btnPrintTabDelivery.classList.add('active');
+            btnPrintTabDelivery.style.background = 'var(--primary)';
+            btnPrintTabDelivery.style.color = 'white';
+            
+            btnPrintTabPacking.classList.remove('active');
+            btnPrintTabPacking.style.background = 'none';
+            btnPrintTabPacking.style.color = 'var(--text-secondary)';
+            updatePrintDocsPreview();
+        });
+    }
+
+    [printCustomerNameInput, printEmployeeSelect, printTrackingInfoInput].forEach(el => {
+        if (el) {
+            el.addEventListener('input', updatePrintDocsPreview);
+            el.addEventListener('change', updatePrintDocsPreview);
+        }
+    });
+
+    if (modalPrintConfirmBtn) {
+        modalPrintConfirmBtn.addEventListener('click', () => {
+            const customer = printCustomerNameInput.value.trim() || 'ACX Customer';
+            const employee = printEmployeeSelect.value || 'System';
+            const tracking = printTrackingInfoInput.value.trim() || 'N/A';
+            const date = new Date().toISOString().substring(0, 10);
+            
+            printDocsModal.classList.add('hidden');
+            if (activePrintTab === 'packing') {
+                printPackingList(selectedPrintItems, customer, employee, date, tracking);
+            } else {
+                printDeliveryNote(selectedPrintItems.map(item => ({
+                    name: item["Product Name"],
+                    cat: item["Catalogue Number"],
+                    specs: item["Specs"],
+                    qty: item["Quantity"] || 0
+                })), customer, employee, date, tracking);
+            }
+        });
+    }
+
+    function updatePrintDocsPreview() {
+        if (!modalPrintPreviewContent) return;
+        const customer = printCustomerNameInput.value.trim() || 'ACX Customer';
+        const employee = printEmployeeSelect.value || 'Not Selected';
+        const tracking = printTrackingInfoInput.value.trim() || 'N/A';
+        const dateStr = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        let tableRowsHtml = '';
+        selectedPrintItems.forEach((item, index) => {
+            tableRowsHtml += `
+                <tr style="border-bottom: 1px solid #cbd5e1;">
+                    <td style="padding: 4px; text-align: center;">${index + 1}</td>
+                    <td style="padding: 4px; font-weight: 600;">${item["Product Name"] || 'N/A'}</td>
+                    <td style="padding: 4px;">${item["Catalogue Number"] || 'N/A'}</td>
+                    <td style="padding: 4px;">${item["Specs"] || 'N/A'}</td>
+                    <td style="padding: 4px; text-align: center; font-weight: 700;">${item["Quantity"] || 0}</td>
+                </tr>
+            `;
+        });
+
+        const docTitle = activePrintTab === 'packing' ? 'PACKING LIST' : 'DELIVERY NOTE';
+        const qtyLabel = activePrintTab === 'packing' ? 'Qty Packed' : 'Qty Delivered';
+
+        modalPrintPreviewContent.innerHTML = `
+            <div style="font-family: Arial, sans-serif; font-size: 10px; line-height: 1.4; color: #1e293b;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 6px; margin-bottom: 8px;">
+                    <div>
+                        <h2 style="font-size: 1.1rem; font-weight: 800; margin: 0; color: #0284c7; letter-spacing: -0.3px;">acx</h2>
+                        <div style="font-size: 0.5rem; font-weight: 600; letter-spacing: 1px; color: #1e293b; margin-top: -2px;">INSTRUMENTS</div>
+                        <div style="font-size: 0.4rem; font-weight: 500; letter-spacing: 1.5px; color: #64748b; margin-top: 1px;">C A M B R I D G E</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h3 style="margin: 0; font-size: 1rem; color: #0284c7; font-weight: 700;">${docTitle}</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 8px; color: #64748b;">Date: ${dateStr}</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <strong>Customer:</strong> ${customer}<br/>
+                        <strong>Carrier:</strong> ${tracking}
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>Authorised By:</strong> ${employee}<br/>
+                        <strong>Warehouse Location:</strong> ACX Instruments
+                    </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9px;">
+                    <thead>
+                        <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1; text-align: left;">
+                            <th style="padding: 4px; width: 5%; text-align: center;">No.</th>
+                            <th style="padding: 4px; width: 45%;">Item Description</th>
+                            <th style="padding: 4px; width: 25%;">Catalogue No.</th>
+                            <th style="padding: 4px; width: 15%;">Specs</th>
+                            <th style="padding: 4px; width: 10%; text-align: center;">${qtyLabel}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRowsHtml}
+                    </tbody>
+                </table>
+
+                <div style="border-top: 1px solid #cbd5e1; padding-top: 4px; font-size: 7px; color: #64748b; text-align: center; margin-top: 8px; line-height: 1.3;">
+                    Company Registration No: 14273222. Registered Office: Attention: Dr. Jiahao Li, Unit 217, St John’s Innovation Centre, Cowley Road, CB4 0WS, United Kingdom.
+                </div>
+            </div>
+        `;
     }
 
     if (bulkDispatchBtn) {
@@ -2699,6 +2860,17 @@ function populateEmployeeDropdowns() {
             bulkDispatchSelect.appendChild(opt);
         });
     }
+
+    const printEmployeeSelect = document.getElementById('print-employee-select');
+    if (printEmployeeSelect) {
+        printEmployeeSelect.innerHTML = '<option value="" disabled selected>Select employee...</option>';
+        employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp;
+            opt.textContent = emp;
+            printEmployeeSelect.appendChild(opt);
+        });
+    }
 }
 
 // Render company employees management list in settings tab
@@ -2738,7 +2910,7 @@ window.removeEmployee = function(index) {
     showToast(`Employee "${name}" removed.`, "info");
 };
 
-// Print Delivery Note for multi-item dispatches
+// Print Delivery Note for dispatches
 function printDeliveryNote(items, customer, employee, date, tracking) {
     const printContainer = document.getElementById('print-slip-container');
     if (!printContainer) return;
@@ -2763,8 +2935,9 @@ function printDeliveryNote(items, customer, employee, date, tracking) {
         <div class="print-slip-doc">
             <div class="print-slip-header">
                 <div>
-                    <h2 style="font-size: 1.45rem; font-weight: 800; margin: 0; letter-spacing: -0.3px; color: #0284c7;">ACX INSTRUMENTS</h2>
-                    <p style="font-size: 0.75rem; color: #555; margin: 0.15rem 0 0 0;">Cambridge, United Kingdom | Quality Lab Equipment</p>
+                    <h2 style="font-size: 2.2rem; font-weight: 900; margin: 0; letter-spacing: -0.8px; color: #0284c7; line-height: 1.0;">acx</h2>
+                    <div style="font-size: 0.9rem; font-weight: 700; letter-spacing: 2px; color: #1e293b; margin-top: -2px;">INSTRUMENTS</div>
+                    <div style="font-size: 0.65rem; font-weight: 600; letter-spacing: 3px; color: #64748b; margin-top: 1px;">C A M B R I D G E</div>
                 </div>
                 <div class="print-slip-title-area">
                     <h1>DELIVERY NOTE</h1>
@@ -2775,7 +2948,7 @@ function printDeliveryNote(items, customer, employee, date, tracking) {
             <div class="print-slip-meta-grid">
                 <div>
                     <strong>Deliver To:</strong><br/>
-                    <span style="font-size: 1.1rem; font-weight: 700;">${customer}</span>
+                    <span style="font-size: 1.15rem; font-weight: 700; color: #0284c7;">${customer}</span>
                 </div>
                 <div style="text-align: right;">
                     <strong>Date of Dispatch:</strong> ${formattedDate}<br/>
@@ -2791,7 +2964,7 @@ function printDeliveryNote(items, customer, employee, date, tracking) {
                         <th style="width: 45%">Item Description</th>
                         <th style="width: 25%">Catalogue No.</th>
                         <th style="width: 20%">Specs / Code</th>
-                        <th style="width: 10%; text-align: center;">Qty</th>
+                        <th style="width: 10%; text-align: center;">Qty Delivered</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2803,7 +2976,7 @@ function printDeliveryNote(items, customer, employee, date, tracking) {
                 * Please inspect all packages immediately upon receipt. Any discrepancies or transit damage must be reported to ACX Instruments within 3 business days.
             </p>
             
-            <div class="print-slip-signatures" style="margin-top: 5rem;">
+            <div class="print-slip-signatures" style="margin-top: 4rem;">
                 <div class="sig-line">
                     Authorised Dispatcher Signature / Date
                 </div>
@@ -2811,9 +2984,100 @@ function printDeliveryNote(items, customer, employee, date, tracking) {
                     Customer Acceptance Signature / Date
                 </div>
             </div>
+
+            <div style="border-top: 1px solid #cbd5e1; padding-top: 1rem; font-size: 0.75rem; color: #64748b; text-align: center; margin-top: 4rem; line-height: 1.4;">
+                Company Registration No: 14273222. Registered Office: Attention: Dr. Jiahao Li, Unit 217, St John’s Innovation Centre, Cowley Road, CB4 0WS, United Kingdom.
+            </div>
         </div>
     `;
     
     logActivity("Export", `Generated delivery note for customer ${customer} (${noteNumber}).`);
+    window.print();
+}
+
+// Print Packing List for warehouse staff
+function printPackingList(items, customer, employee, date, tracking) {
+    const printContainer = document.getElementById('print-slip-container');
+    if (!printContainer) return;
+    
+    const formattedDate = new Date(date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+    const noteNumber = 'PKG-' + Math.floor(100000 + Math.random() * 900000);
+    
+    let tableRowsHtml = '';
+    items.forEach((item, index) => {
+        tableRowsHtml += `
+            <tr>
+                <td>${index + 1}</td>
+                <td style="font-weight: 600;">${item["Product Name"] || 'N/A'}</td>
+                <td>${item["Catalogue Number"] || 'N/A'}</td>
+                <td><span style="font-family: monospace; font-size: 0.8rem;">${item["Specs"] || 'N/A'}</span></td>
+                <td>${item["Condition"] || 'N/A'}</td>
+                <td style="font-weight: 700; text-align: center;">${item["Quantity"] || 0}</td>
+            </tr>
+        `;
+    });
+    
+    printContainer.innerHTML = `
+        <div class="print-slip-doc">
+            <div class="print-slip-header">
+                <div>
+                    <h2 style="font-size: 2.2rem; font-weight: 900; margin: 0; letter-spacing: -0.8px; color: #0284c7; line-height: 1.0;">acx</h2>
+                    <div style="font-size: 0.9rem; font-weight: 700; letter-spacing: 2px; color: #1e293b; margin-top: -2px;">INSTRUMENTS</div>
+                    <div style="font-size: 0.65rem; font-weight: 600; letter-spacing: 3px; color: #64748b; margin-top: 1px;">C A M B R I D G E</div>
+                </div>
+                <div class="print-slip-title-area">
+                    <h1>PACKING LIST</h1>
+                    <p>Ref: <strong>${noteNumber}</strong></p>
+                </div>
+            </div>
+            
+            <div class="print-slip-meta-grid">
+                <div>
+                    <strong>Deliver To:</strong><br/>
+                    <span style="font-size: 1.15rem; font-weight: 700; color: #0284c7;">${customer}</span>
+                </div>
+                <div style="text-align: right;">
+                    <strong>Date of Packing:</strong> ${formattedDate}<br/>
+                    <strong>Carrier:</strong> ${tracking || 'Standard Courier'}<br/>
+                    <strong>Authorised By:</strong> ${employee}
+                </div>
+            </div>
+            
+            <table class="print-slip-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">No.</th>
+                        <th style="width: 40%">Item Description</th>
+                        <th style="width: 20%">Catalogue No.</th>
+                        <th style="width: 20%">Specs / Code</th>
+                        <th style="width: 10%">Condition</th>
+                        <th style="width: 5%; text-align: center;">Qty Packed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRowsHtml}
+                </tbody>
+            </table>
+            
+            <p style="font-size: 0.8rem; color: #555; line-height: 1.4; margin-top: 2rem;">
+                * Warehouse checklist document. Please verify condition and specs before sealing shipment.
+            </p>
+            
+            <div class="print-slip-signatures" style="margin-top: 4rem;">
+                <div class="sig-line">
+                    Prepared By Signature / Date
+                </div>
+                <div class="sig-line">
+                    Quality Inspected By / Date
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #cbd5e1; padding-top: 1rem; font-size: 0.75rem; color: #64748b; text-align: center; margin-top: 4rem; line-height: 1.4;">
+                Company Registration No: 14273222. Registered Office: Attention: Dr. Jiahao Li, Unit 217, St John’s Innovation Centre, Cowley Road, CB4 0WS, United Kingdom.
+            </div>
+        </div>
+    `;
+    
+    logActivity("Export", `Generated packing list for customer ${customer} (${noteNumber}).`);
     window.print();
 }
