@@ -513,6 +513,7 @@ async function fetchInventory() {
             dispatchesData = result.dispatches || [];
             updateConnectionStatus(true, "Connected");
             applyFiltersAndRender();
+            checkDeepLink();
         } else {
             throw new Error(result.message || "Failed to fetch data");
         }
@@ -1250,9 +1251,9 @@ function printSingleTag(item) {
     if (!printContainer || typeof QRCode === 'undefined') return;
     
     const canvas = document.createElement('canvas');
-    const qrText = `Name: ${item["Product Name"]}\nCat: ${item["Catalogue Number"] || 'N/A'}\nQty: ${item["Quantity"]}\nCond: ${item["Condition"] || 'N/A'}`;
+    const qrLink = window.location.origin + window.location.pathname + '?cat=' + encodeURIComponent((item["Catalogue Number"] || item["Product Name"] || '').toString().trim());
     
-    QRCode.toCanvas(canvas, qrText, { width: 140, margin: 1 }, () => {
+    QRCode.toCanvas(canvas, qrLink, { width: 140, margin: 1 }, () => {
         const qrImgUrl = canvas.toDataURL();
         printContainer.innerHTML = `
             <div class="print-slip-doc" style="max-width: 250px; margin: 50px auto; text-align: center; border: 2px solid #000; padding: 1.5rem; border-radius: 8px; font-family: 'Inter', sans-serif;">
@@ -1337,8 +1338,8 @@ function openProductModal(item) {
     // Render QR Code Tag
     const qrCanvas = document.getElementById('modal-qr-canvas');
     if (qrCanvas && typeof QRCode !== 'undefined') {
-        const qrText = `Name: ${item["Product Name"]}\nCat: ${item["Catalogue Number"] || 'N/A'}\nQty: ${item["Quantity"]}\nCond: ${item["Condition"] || 'N/A'}`;
-        QRCode.toCanvas(qrCanvas, qrText, {
+        const qrLink = window.location.origin + window.location.pathname + '?cat=' + encodeURIComponent((item["Catalogue Number"] || item["Product Name"] || '').toString().trim());
+        QRCode.toCanvas(qrCanvas, qrLink, {
             width: 110,
             margin: 1,
             color: {
@@ -2343,4 +2344,20 @@ function renderActivityLog() {
     });
     
     timelineEl.innerHTML = html;
+}
+
+// Deep-link check for QR code scans
+function checkDeepLink() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const catQuery = urlParams.get('cat');
+    if (catQuery && inventoryData.length > 0) {
+        const linkedItem = inventoryData.find(i => 
+            (i["Catalogue Number"] && i["Catalogue Number"].toString().trim().toLowerCase() === catQuery.trim().toLowerCase()) ||
+            (i["Product Name"] && i["Product Name"].toString().trim().toLowerCase() === catQuery.trim().toLowerCase())
+        );
+        if (linkedItem) {
+            openProductModal(linkedItem);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
 }
