@@ -2207,6 +2207,13 @@ function initBulkOperations() {
         });
     }
 
+    // Delegation to listen to individual row checkbox clicks
+    document.addEventListener('change', (e) => {
+        if (e.target && e.target.classList.contains('row-checkbox')) {
+            updateBulkBar();
+        }
+    });
+
     if (bulkClearSelectionBtn) {
         bulkClearSelectionBtn.addEventListener('click', () => {
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
