@@ -1250,7 +1250,7 @@ function printSingleTag(item) {
     if (!printContainer || typeof QRCode === 'undefined') return;
     
     const canvas = document.createElement('canvas');
-    const qrText = `PRODUCT: ${item["Product Name"]}\nCATALOGUE: ${item["Catalogue Number"] || 'N/A'}\nQUANTITY: ${item["Quantity"]}\nCONDITION: ${item["Condition"]}`;
+    const qrText = `Name: ${item["Product Name"]}\nCat: ${item["Catalogue Number"] || 'N/A'}\nQty: ${item["Quantity"]}\nCond: ${item["Condition"] || 'N/A'}`;
     
     QRCode.toCanvas(canvas, qrText, { width: 140, margin: 1 }, () => {
         const qrImgUrl = canvas.toDataURL();
@@ -1337,7 +1337,7 @@ function openProductModal(item) {
     // Render QR Code Tag
     const qrCanvas = document.getElementById('modal-qr-canvas');
     if (qrCanvas && typeof QRCode !== 'undefined') {
-        const qrText = `PRODUCT: ${item["Product Name"]}\nCATALOGUE: ${item["Catalogue Number"] || 'N/A'}\nQUANTITY: ${item["Quantity"]}\nCONDITION: ${item["Condition"]}`;
+        const qrText = `Name: ${item["Product Name"]}\nCat: ${item["Catalogue Number"] || 'N/A'}\nQty: ${item["Quantity"]}\nCond: ${item["Condition"] || 'N/A'}`;
         QRCode.toCanvas(qrCanvas, qrText, {
             width: 110,
             margin: 1,

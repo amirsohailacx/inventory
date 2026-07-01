@@ -1278,6 +1278,7 @@ body.light-theme .modal-left-panel {
     width: 100%;
     aspect-ratio: 4/3;
     border-radius: var(--radius-md);
+    flex-shrink: 0;
     background-color: var(--bg-input);
     border: 1px solid var(--border-color);
     overflow: hidden;
