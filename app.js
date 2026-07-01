@@ -2313,20 +2313,15 @@ function initBulkOperations() {
     if (modalPrintConfirmBtn) {
         modalPrintConfirmBtn.addEventListener('click', () => {
             const customer = printCustomerNameInput.value.trim() || 'ACX Customer';
-            const employee = printEmployeeSelect.value || 'System';
-            const tracking = printTrackingInfoInput.value.trim() || 'N/A';
-            const date = new Date().toISOString().substring(0, 10);
+            const docTitle = activePrintTab === 'packing' ? 'packing list' : 'delivery note';
             
             printDocsModal.classList.add('hidden');
-            if (activePrintTab === 'packing') {
-                printPackingList(selectedPrintItems, customer, employee, date, tracking);
-            } else {
-                printDeliveryNote(selectedPrintItems.map(item => ({
-                    name: item["Product Name"],
-                    cat: item["Catalogue Number"],
-                    specs: item["Specs"],
-                    qty: item["Quantity"] || 0
-                })), customer, employee, date, tracking);
+            
+            const printContainer = document.getElementById('print-slip-container');
+            if (printContainer) {
+                printContainer.innerHTML = `<div class="print-slip-doc" style="width: 100%; color: #000; padding: 1.5rem;">${modalPrintPreviewContent.innerHTML}</div>`;
+                logActivity("Export", `Generated and printed ${docTitle} for customer ${customer}.`);
+                window.print();
             }
         });
     }
@@ -2342,17 +2337,23 @@ function initBulkOperations() {
         selectedPrintItems.forEach((item, index) => {
             tableRowsHtml += `
                 <tr style="border-bottom: 1px solid #cbd5e1;">
-                    <td style="padding: 4px; text-align: center;">${index + 1}</td>
-                    <td style="padding: 4px; font-weight: 600;">${item["Product Name"] || 'N/A'}</td>
-                    <td style="padding: 4px;">${item["Catalogue Number"] || 'N/A'}</td>
-                    <td style="padding: 4px;">${item["Specs"] || 'N/A'}</td>
-                    <td style="padding: 4px; text-align: center; font-weight: 700;">${item["Quantity"] || 0}</td>
+                    <td style="padding: 4px; text-align: center;" contenteditable="true">${index + 1}</td>
+                    <td style="padding: 4px; font-weight: 600;" contenteditable="true">${item["Product Name"] || 'N/A'}</td>
+                    <td style="padding: 4px;" contenteditable="true">${item["Catalogue Number"] || 'N/A'}</td>
+                    <td style="padding: 4px;" contenteditable="true">${item["Specs"] || 'N/A'}</td>
+                    <td style="padding: 4px; text-align: center; font-weight: 700;" contenteditable="true">${item["Quantity"] || 0}</td>
                 </tr>
             `;
         });
 
         const docTitle = activePrintTab === 'packing' ? 'PACKING LIST' : 'DELIVERY NOTE';
         const qtyLabel = activePrintTab === 'packing' ? 'Qty Packed' : 'Qty Delivered';
+        const notesText = activePrintTab === 'packing' 
+            ? '* Warehouse checklist document. Please verify condition and specs before sealing shipment.'
+            : '* Please inspect all packages immediately upon receipt. Any discrepancies or transit damage must be reported to ACX Instruments within 3 business days.';
+
+        const sig1 = activePrintTab === 'packing' ? 'Prepared By Signature / Date' : 'Authorised Dispatcher Signature / Date';
+        const sig2 = activePrintTab === 'packing' ? 'Quality Inspected By / Date' : 'Customer Acceptance Signature / Date';
 
         modalPrintPreviewContent.innerHTML = `
             <div style="font-family: Arial, sans-serif; font-size: 10px; line-height: 1.4; color: #1e293b;">
@@ -2361,19 +2362,19 @@ function initBulkOperations() {
                         <img src="logo.png" alt="ACX Instruments Logo" style="height: 28px; object-fit: contain; display: block;">
                     </div>
                     <div style="text-align: right;">
-                        <h3 style="margin: 0; font-size: 1rem; color: #0284c7; font-weight: 700;">${docTitle}</h3>
-                        <p style="margin: 2px 0 0 0; font-size: 8px; color: #64748b;">Date: ${dateStr}</p>
+                        <h3 style="margin: 0; font-size: 1rem; color: #0284c7; font-weight: 700;" contenteditable="true">${docTitle}</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 8px; color: #64748b;">Date: <span contenteditable="true">${dateStr}</span></p>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <div>
-                        <strong>Customer:</strong> ${customer}<br/>
-                        <strong>Carrier:</strong> ${tracking}
+                        <strong>Customer:</strong> <span contenteditable="true">${customer}</span><br/>
+                        <strong>Carrier:</strong> <span contenteditable="true">${tracking}</span>
                     </div>
                     <div style="text-align: right;">
-                        <strong>Authorised By:</strong> ${employee}<br/>
-                        <strong>Warehouse Location:</strong> ACX Instruments
+                        <strong>Authorised By:</strong> <span contenteditable="true">${employee}</span><br/>
+                        <strong>Warehouse Location:</strong> <span contenteditable="true">ACX Instruments</span>
                     </div>
                 </div>
 
@@ -2392,7 +2393,20 @@ function initBulkOperations() {
                     </tbody>
                 </table>
 
-                <div style="border-top: 1px solid #cbd5e1; padding-top: 4px; font-size: 7px; color: #64748b; text-align: center; margin-top: 8px; line-height: 1.3;">
+                <div style="font-size: 8px; margin-bottom: 15px; color: #555;" contenteditable="true">
+                    ${notesText}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; margin-bottom: 15px;">
+                    <div style="border-top: 1px solid #000; padding-top: 3px; font-size: 8px;" contenteditable="true">
+                        ${sig1}
+                    </div>
+                    <div style="border-top: 1px solid #000; padding-top: 3px; font-size: 8px;" contenteditable="true">
+                        ${sig2}
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #cbd5e1; padding-top: 4px; font-size: 7px; color: #64748b; text-align: center; margin-top: 8px; line-height: 1.3;" contenteditable="true">
                     Company Registration No: 14273222. Registered Office: Attention: Dr. Jiahao Li, Unit 217, St John’s Innovation Centre, Cowley Road, CB4 0WS, United Kingdom.
                 </div>
             </div>
