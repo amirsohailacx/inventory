@@ -9,10 +9,10 @@ let sortColumn = null;
 let sortDirection = 'asc'; // 'asc' or 'desc'
 
 // Employee State
-const defaultEmployees = ["Amir Sohail", "John Smith", "David Patel", "Sarah Jenkins"];
-let employees = JSON.parse(localStorage.getItem('inventory_employees')) || defaultEmployees;
-if (!localStorage.getItem('inventory_employees')) {
-    localStorage.setItem('inventory_employees', JSON.stringify(employees));
+const defaultEmployees = ["Jiahao Li", "Yacine Belgaid", "Amir Sohail"];
+let employees = JSON.parse(localStorage.getItem('inventory_employees_v2')) || defaultEmployees;
+if (!localStorage.getItem('inventory_employees_v2')) {
+    localStorage.setItem('inventory_employees_v2', JSON.stringify(employees));
 }
 
 // DOM Elements
@@ -496,7 +496,7 @@ function initApp() {
                 return;
             }
             employees.push(name);
-            localStorage.setItem('inventory_employees', JSON.stringify(employees));
+            localStorage.setItem('inventory_employees_v2', JSON.stringify(employees));
             newEmployeeInput.value = '';
             renderSettingsEmployees();
             populateEmployeeDropdowns();
@@ -2467,7 +2467,7 @@ function renderSettingsEmployees() {
 window.removeEmployee = function(index) {
     const name = employees[index];
     employees.splice(index, 1);
-    localStorage.setItem('inventory_employees', JSON.stringify(employees));
+    localStorage.setItem('inventory_employees_v2', JSON.stringify(employees));
     renderSettingsEmployees();
     populateEmployeeDropdowns();
     showToast(`Employee "${name}" removed.`, "info");
