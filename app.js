@@ -465,6 +465,9 @@ function initApp() {
             showToast("Product added successfully! Refreshing database...", "success");
             logActivity("Update", `Product **${name}** (Qty: **${quantity}**) was added by employee **${employee}**.`);
             addProductForm.reset();
+            if (newProductImagePreview) {
+                newProductImagePreview.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzFhMjQzYyIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE1MCIgcj0iNTAiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI1LDUiLz48cGF0aCBkPSJNMTAwIDE1MCBMMzAwIDE1MCBNMjAwIDUwIEwyMDAgMjUwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCI+Q0xJQ0sgVE8gVVBMT0FEPC90ZXh0Pjwvc3ZnPg==";
+            }
             
             // Switch back to Dashboard tab
             document.querySelector('[data-tab="dashboard-tab"]').click();
@@ -1836,6 +1839,93 @@ if (changeAvatarForm) {
             showToast("Please select a file to upload or paste a URL link.", "warning");
         }
     });
+}
+
+// ========================================================
+// Drag-and-Drop Image Uploader & Compressor (Add Product Form)
+// ========================================================
+const newProductImageDropzone = document.getElementById('new-product-image-dropzone');
+const newProductImageInput = document.getElementById('new-product-image-input');
+const newProductImagePreview = document.getElementById('new-product-image-preview');
+const newImageUrlInput = document.getElementById('new-image-url');
+
+if (newProductImageDropzone && newProductImageInput) {
+    newProductImageDropzone.addEventListener('click', () => newProductImageInput.click());
+    newProductImageInput.addEventListener('click', (e) => e.stopPropagation());
+    
+    newProductImageInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleNewProductImageUpload(e.target.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(name => {
+        newProductImageDropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            newProductImageDropzone.style.borderColor = 'var(--primary)';
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+        newProductImageDropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            newProductImageDropzone.style.borderColor = 'var(--border-color)';
+        });
+    });
+
+    newProductImageDropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        if (dt.files.length) {
+            handleNewProductImageUpload(dt.files[0]);
+        } else {
+            const url = dt.getData('text/plain');
+            if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/'))) {
+                newProductImagePreview.src = url;
+                newImageUrlInput.value = url;
+            }
+        }
+    });
+}
+
+function handleNewProductImageUpload(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        showToast("Please select a valid image file.", "warning");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            const maxDimension = 600;
+            if (width > maxDimension || height > maxDimension) {
+                if (width > height) {
+                    height = Math.round((height * maxDimension) / width);
+                    width = maxDimension;
+                } else {
+                    width = Math.round((width * maxDimension) / height);
+                    height = maxDimension;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+            newProductImagePreview.src = compressedBase64;
+            newImageUrlInput.value = compressedBase64;
+            showToast("Product image uploaded successfully!", "success");
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
 // ========================================================

@@ -241,8 +241,16 @@
                             <input type="text" id="new-catalogue-number" placeholder="e.g. 0016FB2E6120170">
                         </div>
                         <div class="form-group">
-                            <label for="new-image-url">Image URL</label>
-                            <input type="url" id="new-image-url" placeholder="https://example.com/drawing.png">
+                            <label>Product Image / Technical Drawing</label>
+                            <div class="modal-image-container" id="new-product-image-dropzone" style="position: relative; cursor: pointer; height: 150px; max-width: 100%; border: 2px dashed var(--border-color); background: var(--bg-input);" title="Drag & drop image file or copy-paste URL here">
+                                <img id="new-product-image-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzFhMjQzYyIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE1MCIgcj0iNTAiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI1LDUiLz48cGF0aCBkPSJNMTAwIDE1MCBMMzAwIDE1MCBNMjAwIDUwIEwyMDAgMjUwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCI+Q0xJQ0sgVE8gVVBMT0FEPC90ZXh0Pjwvc3ZnPg==" alt="Image Preview" class="modal-product-image" style="object-fit: contain;">
+                                <div class="image-overlay-prompt">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Drop / Click to upload</span>
+                                </div>
+                                <input type="file" id="new-product-image-input" accept="image/*" style="display: none;">
+                            </div>
+                            <input type="hidden" id="new-image-url" value="">
                         </div>
                         <div class="form-group-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <div class="form-group">
