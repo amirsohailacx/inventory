@@ -97,7 +97,7 @@ function sha256Fallback(ascii) {
     let result = '';
     const words = [];
     const asciiLength = ascii.length;
-    const hash = [];
+    let hash = [];
     const k = [];
     let primeCounter = 0;
     const getPrime = function(candidate) {
