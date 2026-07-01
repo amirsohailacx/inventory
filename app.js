@@ -1276,6 +1276,13 @@ const dispatchSubmitBtn = document.getElementById('dispatch-submit-btn');
 const modalTabBtns = document.querySelectorAll('.modal-tab-btn');
 const modalTabContents = document.querySelectorAll('.modal-tab-content');
 
+// Bulk Dispatch Modal DOM
+const bulkDispatchModal = document.getElementById('bulk-dispatch-modal');
+const closeBulkDispatchModalBtn = document.getElementById('close-bulk-dispatch-modal-btn');
+const bulkDispatchForm = document.getElementById('bulk-dispatch-form');
+const bulkDispatchTbody = document.getElementById('bulk-dispatch-tbody');
+const bulkDispatchSubmitBtn = document.getElementById('bulk-dispatch-submit-btn');
+
 // Helper to format dates cleanly
 function formatDate(dateStr) {
     if (!dateStr) return 'N/A';
@@ -2185,6 +2192,7 @@ function initBulkOperations() {
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const bulkUpdateConditionBtn = document.getElementById('bulk-update-condition-btn');
     const bulkPrintSlipBtn = document.getElementById('bulk-print-slip-btn');
+    const bulkDispatchBtn = document.getElementById('bulk-dispatch-btn');
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
     const bulkClearSelectionBtn = document.getElementById('bulk-clear-selection-btn');
 
@@ -2219,6 +2227,45 @@ function initBulkOperations() {
             if (selectedItems.length > 0) {
                 generateAndPrintPackingSlip(selectedItems);
             }
+        });
+    }
+
+    if (bulkDispatchBtn) {
+        bulkDispatchBtn.addEventListener('click', () => {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+            
+            const selectedItems = [];
+            checkedBoxes.forEach(cb => {
+                const rowIndex = parseInt(cb.dataset.row);
+                const item = inventoryData.find(i => parseInt(i.row_index) === rowIndex);
+                if (item) selectedItems.push(item);
+            });
+            
+            if (selectedItems.length > 0) {
+                bulkDispatchTbody.innerHTML = selectedItems.map(item => `
+                    <tr data-row="${item.row_index}">
+                        <td><strong>${escapeHtml(item["Product Name"] || 'N/A')}</strong></td>
+                        <td>${escapeHtml(item["Catalogue Number"] || 'N/A')}</td>
+                        <td><span style="font-weight: 600;">${item["Quantity"] || '0'}</span></td>
+                        <td>
+                            <input type="number" class="bulk-qty-input" style="width: 80px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); outline: none;" min="1" max="${parseInt(item.Quantity) || 9999}" value="1" required>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                bulkDispatchForm.reset();
+                document.getElementById('bulk-dispatch-date').value = new Date().toISOString().substring(0, 10);
+                populateEmployeeDropdowns();
+                
+                bulkDispatchModal.classList.remove('hidden');
+            }
+        });
+    }
+
+    if (closeBulkDispatchModalBtn) {
+        closeBulkDispatchModalBtn.addEventListener('click', () => {
+            bulkDispatchModal.classList.add('hidden');
         });
     }
 
@@ -2312,6 +2359,93 @@ function initBulkOperations() {
             checkedBoxes.forEach(cb => cb.checked = false);
             updateBulkBar();
             setTimeout(fetchInventory, 1000);
+        });
+    if (bulkDispatchForm) {
+        bulkDispatchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!googleScriptUrl) {
+                showToast("No database connection.", "error");
+                return;
+            }
+
+            const employee = document.getElementById('bulk-dispatch-employee').value;
+            const customer = document.getElementById('bulk-dispatch-customer').value.trim();
+            const date = document.getElementById('bulk-dispatch-date').value;
+            const tracking = document.getElementById('bulk-dispatch-tracking').value.trim();
+
+            if (!employee) {
+                showToast("Error: An authorised employee must be selected!", "error");
+                return;
+            }
+
+            const rows = bulkDispatchTbody.querySelectorAll('tr');
+            if (rows.length === 0) return;
+
+            bulkDispatchSubmitBtn.disabled = true;
+            bulkDispatchSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatching Items...';
+
+            const dispatchedItemsList = [];
+            let successCount = 0;
+
+            for (let tr of rows) {
+                const rowIndex = parseInt(tr.dataset.row);
+                const qtyInput = tr.querySelector('.bulk-qty-input');
+                const qtyToShip = parseInt(qtyInput.value) || 0;
+
+                const item = inventoryData.find(i => parseInt(i.row_index) === rowIndex);
+                if (!item) continue;
+
+                showToast(`Processing dispatch for ${item["Product Name"]}...`, "info");
+
+                try {
+                    await fetch(googleScriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'dispatch',
+                            catalogue_number: item["Catalogue Number"] || '',
+                            customer: customer,
+                            dispatch_date: date,
+                            tracking_details: tracking,
+                            quantity: qtyToShip.toString(),
+                            employee: employee
+                        })
+                    });
+
+                    successCount++;
+                    dispatchedItemsList.push({
+                        name: item["Product Name"],
+                        cat: item["Catalogue Number"],
+                        specs: item["Specs"],
+                        qty: qtyToShip
+                    });
+                } catch (err) {
+                    console.error("Bulk item dispatch failed for row " + rowIndex, err);
+                }
+            }
+
+            bulkDispatchSubmitBtn.disabled = false;
+            bulkDispatchSubmitBtn.innerHTML = '<i class="fa-solid fa-file-invoice"></i> Confirm Dispatch & Print Delivery Note';
+
+            if (successCount > 0) {
+                showToast(`Successfully dispatched ${successCount} products!`, "success");
+                bulkDispatchModal.classList.add('hidden');
+                
+                // Clear selections
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+                rowCheckboxes.forEach(cb => cb.checked = false);
+                updateBulkBar();
+
+                // Open delivery note print preview
+                printDeliveryNote(dispatchedItemsList, customer, employee, date, tracking);
+
+                // Refresh data
+                setTimeout(fetchInventory, 1500);
+            } else {
+                showToast("Failed to dispatch any items. Please try again.", "error");
+            }
         });
     }
 }
@@ -2522,6 +2656,7 @@ function checkDeepLink() {
 function populateEmployeeDropdowns() {
     const dispatchSelect = document.getElementById('dispatch-employee');
     const newProductSelect = document.getElementById('new-employee');
+    const bulkDispatchSelect = document.getElementById('bulk-dispatch-employee');
     
     if (dispatchSelect) {
         dispatchSelect.innerHTML = '<option value="" disabled selected>Select employee...</option>';
@@ -2540,6 +2675,16 @@ function populateEmployeeDropdowns() {
             opt.value = emp;
             opt.textContent = emp;
             newProductSelect.appendChild(opt);
+        });
+    }
+
+    if (bulkDispatchSelect) {
+        bulkDispatchSelect.innerHTML = '<option value="" disabled selected>Select employee...</option>';
+        employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp;
+            opt.textContent = emp;
+            bulkDispatchSelect.appendChild(opt);
         });
     }
 }
@@ -2580,3 +2725,83 @@ window.removeEmployee = function(index) {
     populateEmployeeDropdowns();
     showToast(`Employee "${name}" removed.`, "info");
 };
+
+// Print Delivery Note for multi-item dispatches
+function printDeliveryNote(items, customer, employee, date, tracking) {
+    const printContainer = document.getElementById('print-slip-container');
+    if (!printContainer) return;
+    
+    const formattedDate = new Date(date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+    const noteNumber = 'DEL-' + Math.floor(100000 + Math.random() * 900000);
+    
+    let tableRowsHtml = '';
+    items.forEach((item, index) => {
+        tableRowsHtml += `
+            <tr>
+                <td>${index + 1}</td>
+                <td style="font-weight: 600;">${item.name || 'N/A'}</td>
+                <td>${item.cat || 'N/A'}</td>
+                <td><span style="font-family: monospace; font-size: 0.8rem;">${item.specs || 'N/A'}</span></td>
+                <td style="font-weight: 700; text-align: center;">${item.qty}</td>
+            </tr>
+        `;
+    });
+    
+    printContainer.innerHTML = `
+        <div class="print-slip-doc">
+            <div class="print-slip-header">
+                <div>
+                    <h2 style="font-size: 1.45rem; font-weight: 800; margin: 0; letter-spacing: -0.3px; color: #0284c7;">ACX INSTRUMENTS</h2>
+                    <p style="font-size: 0.75rem; color: #555; margin: 0.15rem 0 0 0;">Cambridge, United Kingdom | Quality Lab Equipment</p>
+                </div>
+                <div class="print-slip-title-area">
+                    <h1>DELIVERY NOTE</h1>
+                    <p>Ref: <strong>${noteNumber}</strong></p>
+                </div>
+            </div>
+            
+            <div class="print-slip-meta-grid">
+                <div>
+                    <strong>Deliver To:</strong><br/>
+                    <span style="font-size: 1.1rem; font-weight: 700;">${customer}</span>
+                </div>
+                <div style="text-align: right;">
+                    <strong>Date of Dispatch:</strong> ${formattedDate}<br/>
+                    <strong>Carrier:</strong> ${tracking || 'Standard Courier'}<br/>
+                    <strong>Authorised By:</strong> ${employee}
+                </div>
+            </div>
+            
+            <table class="print-slip-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">No.</th>
+                        <th style="width: 45%">Item Description</th>
+                        <th style="width: 25%">Catalogue No.</th>
+                        <th style="width: 20%">Specs / Code</th>
+                        <th style="width: 10%; text-align: center;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRowsHtml}
+                </tbody>
+            </table>
+            
+            <p style="font-size: 0.8rem; color: #555; line-height: 1.4; margin-top: 2rem;">
+                * Please inspect all packages immediately upon receipt. Any discrepancies or transit damage must be reported to ACX Instruments within 3 business days.
+            </p>
+            
+            <div class="print-slip-signatures" style="margin-top: 5rem;">
+                <div class="sig-line">
+                    Authorised Dispatcher Signature / Date
+                </div>
+                <div class="sig-line">
+                    Customer Acceptance Signature / Date
+                </div>
+            </div>
+        </div>
+    `;
+    
+    logActivity("Export", `Generated delivery note for customer ${customer} (${noteNumber}).`);
+    window.print();
+}
