@@ -2356,11 +2356,9 @@ function initBulkOperations() {
 
         modalPrintPreviewContent.innerHTML = `
             <div style="font-family: Arial, sans-serif; font-size: 10px; line-height: 1.4; color: #1e293b;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 6px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 6px; margin-bottom: 8px; align-items: center;">
                     <div>
-                        <h2 style="font-size: 1.1rem; font-weight: 800; margin: 0; color: #0284c7; letter-spacing: -0.3px;">acx</h2>
-                        <div style="font-size: 0.5rem; font-weight: 600; letter-spacing: 1px; color: #1e293b; margin-top: -2px;">INSTRUMENTS</div>
-                        <div style="font-size: 0.4rem; font-weight: 500; letter-spacing: 1.5px; color: #64748b; margin-top: 1px;">C A M B R I D G E</div>
+                        <img src="logo.png" alt="ACX Instruments Logo" style="height: 28px; object-fit: contain; display: block;">
                     </div>
                     <div style="text-align: right;">
                         <h3 style="margin: 0; font-size: 1rem; color: #0284c7; font-weight: 700;">${docTitle}</h3>
@@ -2933,11 +2931,9 @@ function printDeliveryNote(items, customer, employee, date, tracking) {
     
     printContainer.innerHTML = `
         <div class="print-slip-doc">
-            <div class="print-slip-header">
+            <div class="print-slip-header" style="align-items: center;">
                 <div>
-                    <h2 style="font-size: 2.2rem; font-weight: 900; margin: 0; letter-spacing: -0.8px; color: #0284c7; line-height: 1.0;">acx</h2>
-                    <div style="font-size: 0.9rem; font-weight: 700; letter-spacing: 2px; color: #1e293b; margin-top: -2px;">INSTRUMENTS</div>
-                    <div style="font-size: 0.65rem; font-weight: 600; letter-spacing: 3px; color: #64748b; margin-top: 1px;">C A M B R I D G E</div>
+                    <img src="logo.png" alt="ACX Instruments Logo" style="height: 48px; object-fit: contain; display: block;">
                 </div>
                 <div class="print-slip-title-area">
                     <h1>DELIVERY NOTE</h1>
@@ -3019,11 +3015,9 @@ function printPackingList(items, customer, employee, date, tracking) {
     
     printContainer.innerHTML = `
         <div class="print-slip-doc">
-            <div class="print-slip-header">
+            <div class="print-slip-header" style="align-items: center;">
                 <div>
-                    <h2 style="font-size: 2.2rem; font-weight: 900; margin: 0; letter-spacing: -0.8px; color: #0284c7; line-height: 1.0;">acx</h2>
-                    <div style="font-size: 0.9rem; font-weight: 700; letter-spacing: 2px; color: #1e293b; margin-top: -2px;">INSTRUMENTS</div>
-                    <div style="font-size: 0.65rem; font-weight: 600; letter-spacing: 3px; color: #64748b; margin-top: 1px;">C A M B R I D G E</div>
+                    <img src="logo.png" alt="ACX Instruments Logo" style="height: 48px; object-fit: contain; display: block;">
                 </div>
                 <div class="print-slip-title-area">
                     <h1>PACKING LIST</h1>
