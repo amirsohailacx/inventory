@@ -2363,6 +2363,8 @@ function initBulkOperations() {
             updateBulkBar();
             setTimeout(fetchInventory, 1000);
         });
+    }
+
     if (bulkDispatchForm) {
         bulkDispatchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
