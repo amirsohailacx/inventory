@@ -1646,3 +1646,205 @@ body:not(.light-theme) .stats-grid .stat-card:hover {
     background: linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.05) 100%);
 }
 
+/* Activity Log Timeline Styles */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+    margin: 0.5rem 0;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 7px;
+    width: 2px;
+    background-color: var(--border-color);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.75rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-badge {
+    position: absolute;
+    left: -2rem;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--border-color);
+    border: 3px solid var(--bg-card);
+    transition: var(--transition);
+}
+
+.timeline-badge.info { background-color: var(--primary); }
+.timeline-badge.success { background-color: var(--success); }
+.timeline-badge.warning { background-color: var(--warning); }
+.timeline-badge.danger { background-color: var(--danger); }
+
+.timeline-content {
+    background-color: var(--bg-hover);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.timeline-meta .time {
+    font-weight: 500;
+}
+
+.timeline-text {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    line-height: 1.45;
+}
+
+.timeline-text strong {
+    font-weight: 600;
+}
+
+/* Print Specific Rules */
+.print-only {
+    display: none;
+}
+
+@media print {
+    /* Hide everything on screen */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Show only the print container and its descendants */
+    #print-slip-container,
+    #print-slip-container * {
+        visibility: visible;
+    }
+    
+    #print-slip-container {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000000 !important;
+        background: #ffffff !important;
+        font-family: 'Inter', sans-serif;
+        padding: 2rem;
+    }
+    
+    /* Reset margins and backgrounds for print */
+    @page {
+        margin: 1.5cm;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* Packing Slip Document Styles (for Print Container) */
+.print-slip-doc {
+    width: 100%;
+    color: #000000;
+}
+
+.print-slip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.print-slip-logo {
+    max-height: 55px;
+    width: auto;
+}
+
+.print-slip-title-area {
+    text-align: right;
+}
+
+.print-slip-title-area h1 {
+    font-size: 1.85rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.print-slip-title-area p {
+    font-size: 0.85rem;
+    color: #555555;
+    margin: 0.25rem 0 0 0;
+}
+
+.print-slip-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.print-slip-meta-grid strong {
+    font-weight: 600;
+}
+
+.print-slip-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 3rem;
+}
+
+.print-slip-table th {
+    background-color: #f1f5f9;
+    border-bottom: 2px solid #cbd5e1;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+}
+
+.print-slip-table td {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.print-slip-signatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-top: 4rem;
+    padding-top: 2rem;
+}
+
+.sig-line {
+    border-top: 1px solid #000000;
+    padding-top: 0.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #333333;
+}
+
+

@@ -287,6 +287,8 @@ function initApp() {
                 renderDispatchesTable();
             } else if (contentId === 'dashboard-tab') {
                 applyFiltersAndRender();
+            } else if (contentId === 'activity-log-tab') {
+                renderActivityLog();
             }
         });
     });
@@ -324,6 +326,10 @@ function initApp() {
     const exportDispatchesBtn = document.getElementById('export-dispatches-btn');
     if (dispatchSearchInput) dispatchSearchInput.addEventListener('input', renderDispatchesTable);
     if (exportDispatchesBtn) exportDispatchesBtn.addEventListener('click', exportDispatchesToCSV);
+
+    // Activity Search Listener
+    const activitySearchInput = document.getElementById('activity-search-input');
+    if (activitySearchInput) activitySearchInput.addEventListener('input', renderActivityLog);
 
     // Search and Filter Events
     searchInput.addEventListener('input', applyFiltersAndRender);
@@ -363,7 +369,7 @@ function initApp() {
         cardLowStock.addEventListener('click', () => {
             searchInput.value = '';
             if (filterConditionEl) filterConditionEl.value = 'all';
-            if (filterStockEl) filterStockEl.value = 'low';
+            if (filterStockEl) filterStockEl.value = 'low_stock';
             applyFiltersAndRender();
             showToast("Filtering to show: Low Stock items", "info");
         });
@@ -440,6 +446,7 @@ function initApp() {
             });
 
             showToast("Product added successfully! Refreshing database...", "success");
+            logActivity("Update", `Added new product **${name}** (Qty: **${quantity}**).`);
             addProductForm.reset();
             
             // Switch back to Dashboard tab
@@ -524,7 +531,11 @@ function updateStats(items) {
     const totalQty = items.reduce((sum, item) => sum + (parseInt(item.Quantity) || 0), 0);
     statTotalStock.textContent = totalQty;
 
-    const lowStockCount = items.filter(item => (parseInt(item.Quantity) || 0) < 10).length;
+    const lowStockCount = items.filter(item => {
+        const qty = parseInt(item.Quantity) || 0;
+        const threshold = parseInt(localStorage.getItem('threshold_' + item["Product Name"])) || 5;
+        return qty < threshold && qty > 0;
+    }).length;
     statLowStock.textContent = lowStockCount;
 }
 
@@ -564,10 +575,11 @@ function applyFiltersAndRender() {
         
         let matchesStock = true;
         const qty = parseInt(item.Quantity) || 0;
+        const threshold = parseInt(localStorage.getItem('threshold_' + item["Product Name"])) || 5;
         if (stockVal === 'in_stock') {
-            matchesStock = qty >= 5;
+            matchesStock = qty >= threshold;
         } else if (stockVal === 'low_stock') {
-            matchesStock = qty < 5 && qty > 0;
+            matchesStock = qty < threshold && qty > 0;
         } else if (stockVal === 'out_of_stock') {
             matchesStock = qty === 0;
         }
@@ -1114,6 +1126,7 @@ async function executeBulkImport() {
         });
 
         showToast(`Successfully imported ${mappedItems.length} items to database!`, "success");
+        logActivity("Import", `Bulk imported **${mappedItems.length} items** from Excel sheet.`);
         
         // Reset import UI state
         importPreviewSection.classList.add('hidden');
@@ -1231,6 +1244,29 @@ function formatDate(dateStr) {
     }
 }
 
+// Print single QR tag
+function printSingleTag(item) {
+    const printContainer = document.getElementById('print-slip-container');
+    if (!printContainer || typeof QRCode === 'undefined') return;
+    
+    const canvas = document.createElement('canvas');
+    const qrText = `PRODUCT: ${item["Product Name"]}\nCATALOGUE: ${item["Catalogue Number"] || 'N/A'}\nQUANTITY: ${item["Quantity"]}\nCONDITION: ${item["Condition"]}`;
+    
+    QRCode.toCanvas(canvas, qrText, { width: 140, margin: 1 }, () => {
+        const qrImgUrl = canvas.toDataURL();
+        printContainer.innerHTML = `
+            <div class="print-slip-doc" style="max-width: 250px; margin: 50px auto; text-align: center; border: 2px solid #000; padding: 1.5rem; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <h2 style="font-size: 0.95rem; margin: 0 0 0.5rem 0; font-weight: 800; letter-spacing: -0.3px;">ACX INSTRUMENTS</h2>
+                <img src="${qrImgUrl}" style="width: 120px; height: 120px; margin: 0.5rem 0;" />
+                <div style="font-size: 0.8rem; font-weight: 700; margin-top: 0.5rem; line-height: 1.3;">${item["Product Name"]}</div>
+                <div style="font-size: 0.75rem; color: #555; margin-top: 0.25rem;">Cat: ${item["Catalogue Number"] || 'N/A'}</div>
+                <div style="font-size: 0.85rem; font-weight: 800; margin-top: 0.5rem; border-top: 1px solid #ddd; padding-top: 0.5rem;">Qty: ${item["Quantity"]}</div>
+            </div>
+        `;
+        window.print();
+    });
+}
+
 // Open Modal and Populate Data
 function openProductModal(item) {
     activeProduct = item;
@@ -1242,6 +1278,98 @@ function openProductModal(item) {
     modalArrivalDate.textContent = formatDate(item["Arrival Date"]);
     modalSpecsText.textContent = item["Specs"] || 'No specifications provided for this product.';
     
+    // Set custom threshold field
+    const threshold = parseInt(localStorage.getItem('threshold_' + item["Product Name"])) || 5;
+    const thresholdInput = document.getElementById('modal-threshold-input');
+    if (thresholdInput) thresholdInput.value = threshold;
+
+    // Calculate burn rate and days stock remaining
+    const matchedDispatches = dispatchesData.filter(d => {
+        return item["Catalogue Number"] && d["Catalogue Number"] && d["Catalogue Number"].toString().trim() === item["Catalogue Number"].toString().trim();
+    });
+    
+    let dailyBurnRate = 0;
+    let daysRemaining = 'N/A';
+    
+    if (matchedDispatches.length > 0) {
+        let totalDispatched = 0;
+        let minDate = new Date();
+        
+        matchedDispatches.forEach(d => {
+            const qty = parseInt(d["Quantity"]) || 0;
+            totalDispatched += qty;
+            const dDate = new Date(d["Dispatch Date"]);
+            if (!isNaN(dDate.getTime()) && dDate < minDate) {
+                minDate = dDate;
+            }
+        });
+        
+        const timeDiff = Math.abs(new Date().getTime() - minDate.getTime());
+        const daysDiff = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+        
+        dailyBurnRate = (totalDispatched / daysDiff);
+        
+        const currentQty = parseInt(item["Quantity"]) || 0;
+        if (dailyBurnRate > 0) {
+            daysRemaining = Math.max(0, Math.ceil(currentQty / dailyBurnRate));
+        }
+    }
+    
+    const burnRateEl = document.getElementById('modal-burn-rate');
+    const daysRemainingEl = document.getElementById('modal-days-remaining');
+    if (burnRateEl) burnRateEl.textContent = dailyBurnRate > 0 ? `${dailyBurnRate.toFixed(2)} units/day` : '0 units/day';
+    if (daysRemainingEl) {
+        if (daysRemaining === 'N/A') {
+            daysRemainingEl.textContent = 'No dispatches yet';
+            daysRemainingEl.style.color = 'var(--text-secondary)';
+        } else {
+            daysRemainingEl.textContent = `${daysRemaining} days`;
+            if (daysRemaining <= 5) {
+                daysRemainingEl.style.color = 'var(--danger)';
+            } else if (daysRemaining <= 15) {
+                daysRemainingEl.style.color = 'var(--warning)';
+            } else {
+                daysRemainingEl.style.color = 'var(--success)';
+            }
+        }
+    }
+
+    // Render QR Code Tag
+    const qrCanvas = document.getElementById('modal-qr-canvas');
+    if (qrCanvas && typeof QRCode !== 'undefined') {
+        const qrText = `PRODUCT: ${item["Product Name"]}\nCATALOGUE: ${item["Catalogue Number"] || 'N/A'}\nQUANTITY: ${item["Quantity"]}\nCONDITION: ${item["Condition"]}`;
+        QRCode.toCanvas(qrCanvas, qrText, {
+            width: 110,
+            margin: 1,
+            color: {
+                dark: '#0f172a',
+                light: '#ffffff'
+            }
+        }, function (error) {
+            if (error) console.error("QR Code Error:", error);
+        });
+    }
+
+    // Save Alert Threshold event
+    const thresholdSaveBtn = document.getElementById('modal-threshold-save-btn');
+    if (thresholdSaveBtn) {
+        thresholdSaveBtn.onclick = () => {
+            const val = parseInt(document.getElementById('modal-threshold-input').value) || 5;
+            localStorage.setItem('threshold_' + item["Product Name"], val);
+            showToast("Custom alert threshold saved!", "success");
+            applyFiltersAndRender();
+            updateStats(inventoryData);
+        };
+    }
+
+    // Print Tag event
+    const printTagBtn = document.getElementById('modal-print-tag-btn');
+    if (printTagBtn) {
+        printTagBtn.onclick = () => {
+            printSingleTag(item);
+        };
+    }
+
     // Set Product Image (loads fallback if empty or invalid URL)
     let imageUrl = (item["Image URL"] || item["Images"] || '').toString().trim();
     
@@ -1257,7 +1385,6 @@ function openProductModal(item) {
     if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/'))) {
         modalProductImage.src = imageUrl;
     } else {
-        // Safe, clean abstract blueprint drawing SVG placeholder (base64 encoded)
         modalProductImage.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzFhMjQzYyIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE1MCIgcj0iNTAiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI1LDUiLz48cGF0aCBkPSJNMTAwIDE1MCBMMzAwIDE1MCBNMjAwIDUwIEwyMDAgMjUwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCI+Tk8gRFJBV0lORyBBVkFJTEFCTEU8L3RleHQ+PC9zdmc+";
     }
     
@@ -1900,6 +2027,7 @@ function updateBulkBar() {
 function initBulkOperations() {
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const bulkUpdateConditionBtn = document.getElementById('bulk-update-condition-btn');
+    const bulkPrintSlipBtn = document.getElementById('bulk-print-slip-btn');
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
     const bulkClearSelectionBtn = document.getElementById('bulk-clear-selection-btn');
 
@@ -1917,6 +2045,23 @@ function initBulkOperations() {
             rowCheckboxes.forEach(cb => cb.checked = false);
             if (selectAllCheckbox) selectAllCheckbox.checked = false;
             updateBulkBar();
+        });
+    }
+    if (bulkPrintSlipBtn) {
+        bulkPrintSlipBtn.addEventListener('click', () => {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+            
+            const selectedItems = [];
+            checkedBoxes.forEach(cb => {
+                const rowIndex = parseInt(cb.dataset.row);
+                const item = inventoryData.find(i => parseInt(i.row_index) === rowIndex);
+                if (item) selectedItems.push(item);
+            });
+            
+            if (selectedItems.length > 0) {
+                generateAndPrintPackingSlip(selectedItems);
+            }
         });
     }
 
@@ -1954,6 +2099,7 @@ function initBulkOperations() {
             }
             
             showToast(`Successfully updated condition for ${successCount} items!`, "success");
+            logActivity("Update", `Updated condition to **${newCondition}** for **${successCount} items**.`);
             bulkUpdateConditionBtn.disabled = false;
             bulkUpdateConditionBtn.innerHTML = '<i class="fa-solid fa-circle-info"></i> Set Condition';
             
@@ -2000,6 +2146,7 @@ function initBulkOperations() {
             }
             
             showToast(`Deleted ${successCount} items from database!`, "success");
+            logActivity("Delete", `Bulk deleted **${successCount} items** from database.`);
             bulkDeleteBtn.disabled = false;
             bulkDeleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
             
@@ -2016,4 +2163,184 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initBulkOperations);
 } else {
     initBulkOperations();
+}
+
+// Generate printable Packing Slip document and trigger window.print
+function generateAndPrintPackingSlip(items) {
+    const printContainer = document.getElementById('print-slip-container');
+    if (!printContainer) return;
+    
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const slipNumber = 'SLIP-' + Math.floor(100000 + Math.random() * 900000);
+    
+    let tableRowsHtml = '';
+    items.forEach((item, index) => {
+        tableRowsHtml += `
+            <tr>
+                <td>${index + 1}</td>
+                <td style="font-weight: 600;">${item["Product Name"] || 'N/A'}</td>
+                <td>${item["Catalogue Number"] || 'N/A'}</td>
+                <td><span style="font-family: monospace; font-size: 0.8rem;">${item["Specs"] || 'N/A'}</span></td>
+                <td>${item["Condition"] || 'N/A'}</td>
+                <td style="font-weight: 700; text-align: center;">${item["Quantity"]}</td>
+            </tr>
+        `;
+    });
+    
+    printContainer.innerHTML = `
+        <div class="print-slip-doc">
+            <div class="print-slip-header">
+                <div>
+                    <h2 style="font-size: 1.45rem; font-weight: 800; margin: 0; letter-spacing: -0.3px; color: #0284c7;">ACX INSTRUMENTS</h2>
+                    <p style="font-size: 0.75rem; color: #555; margin: 0.15rem 0 0 0;">Cambridge, United Kingdom | Quality Lab Equipment</p>
+                </div>
+                <div class="print-slip-title-area">
+                    <h1>PACKING SLIP</h1>
+                    <p>Ref: <strong>${slipNumber}</strong></p>
+                </div>
+            </div>
+            
+            <div class="print-slip-meta-grid">
+                <div>
+                    <strong>Date Generated:</strong> ${dateStr}<br/>
+                    <strong>Carrier:</strong> Internal Logistics / Courier Delivery<br/>
+                    <strong>Status:</strong> Ready for Dispatch
+                </div>
+                <div style="text-align: right;">
+                    <strong>Source Location:</strong> ACX Instruments Warehouse<br/>
+                    <strong>Audited By:</strong> Warehouse Management Dashboard<br/>
+                    <strong>Authorized Signature Required</strong>
+                </div>
+            </div>
+            
+            <table class="print-slip-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">No.</th>
+                        <th style="width: 35%">Item Description</th>
+                        <th style="width: 20%">Catalogue No.</th>
+                        <th style="width: 25%">Specs / Code</th>
+                        <th style="width: 10%">Condition</th>
+                        <th style="width: 5%; text-align: center;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRowsHtml}
+                </tbody>
+            </table>
+            
+            <div class="print-slip-signatures">
+                <div class="sig-line">
+                    Authorized Sign-off / Dispatcher
+                </div>
+                <div class="sig-line">
+                    Received By / Consignee
+                </div>
+            </div>
+        </div>
+    `;
+    
+    logActivity("Export", `Generated packing slip for ${items.length} items (${slipNumber}).`);
+    window.print();
+}
+
+// Activity log local storage audit trail
+function logActivity(actionType, details) {
+    const logs = JSON.parse(localStorage.getItem('activity_audit_logs')) || [];
+    const timestamp = new Date().toISOString();
+    logs.unshift({
+        timestamp: timestamp,
+        type: actionType, // 'Dispatch', 'Import', 'Update', 'Export', 'Delete'
+        details: details
+    });
+    if (logs.length > 150) logs.pop();
+    localStorage.setItem('activity_audit_logs', JSON.stringify(logs));
+}
+
+// Retrieve combined local & Apps Script dispatches audit trail
+function getActivityLogs() {
+    const localLogs = JSON.parse(localStorage.getItem('activity_audit_logs')) || [];
+    
+    const dispatchLogs = dispatchesData.map(d => {
+        return {
+            timestamp: d["Dispatch Date"] || new Date().toISOString(),
+            type: 'Dispatch',
+            details: `Shipped **${d["Quantity"] || '0'} units** of Cat: **${d["Catalogue Number"]}** to customer **${d["Customer"] || 'Unknown'}** (Ref: ${d["Tracking Details"] || 'N/A'}).`
+        };
+    });
+    
+    const merged = [...localLogs, ...dispatchLogs];
+    merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return merged;
+}
+
+// Render dynamic timeline items on screen
+function renderActivityLog() {
+    const timelineEl = document.getElementById('activity-log-timeline');
+    const searchInputEl = document.getElementById('activity-search-input');
+    if (!timelineEl) return;
+    
+    const searchVal = searchInputEl ? searchInputEl.value.toLowerCase().trim() : '';
+    const logs = getActivityLogs();
+    
+    const filteredLogs = logs.filter(log => {
+        if (!searchVal) return true;
+        const detailsLower = (log.details || '').toLowerCase();
+        const typeLower = (log.type || '').toLowerCase();
+        return detailsLower.includes(searchVal) || typeLower.includes(searchVal);
+    });
+    
+    if (filteredLogs.length === 0) {
+        timelineEl.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                <i class="fa-solid fa-list-check" style="font-size: 2.25rem; margin-bottom: 0.75rem; color: var(--border-color);"></i>
+                <p>No activity logs found matching your filters.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    filteredLogs.forEach(log => {
+        let badgeClass = 'info';
+        
+        if (log.type === 'Dispatch') {
+            badgeClass = 'success';
+        } else if (log.type === 'Import') {
+            badgeClass = 'info';
+        } else if (log.type === 'Delete') {
+            badgeClass = 'danger';
+        } else if (log.type === 'Update') {
+            badgeClass = 'warning';
+        } else if (log.type === 'Export') {
+            badgeClass = 'info';
+        }
+        
+        const dateObj = new Date(log.timestamp);
+        const dateStr = isNaN(dateObj.getTime()) ? log.timestamp : dateObj.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        let parsedDetails = escapeHtml(log.details || '');
+        parsedDetails = parsedDetails.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        html += `
+            <div class="timeline-item">
+                <div class="timeline-badge ${badgeClass}"></div>
+                <div class="timeline-content">
+                    <div class="timeline-meta">
+                        <span class="type" style="text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">${log.type}</span>
+                        <span class="time">${dateStr}</span>
+                    </div>
+                    <div class="timeline-text">${parsedDetails}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    timelineEl.innerHTML = html;
 }
