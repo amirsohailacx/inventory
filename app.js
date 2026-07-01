@@ -334,6 +334,41 @@ function initApp() {
     if (filterConditionEl) filterConditionEl.addEventListener('change', applyFiltersAndRender);
     if (filterStockEl) filterStockEl.addEventListener('change', applyFiltersAndRender);
 
+    // Stats Cards Click Events to filter
+    const cardTotalProducts = document.getElementById('card-total-products');
+    const cardTotalStock = document.getElementById('card-total-stock');
+    const cardLowStock = document.getElementById('card-low-stock');
+
+    if (cardTotalProducts) {
+        cardTotalProducts.addEventListener('click', () => {
+            searchInput.value = '';
+            if (filterConditionEl) filterConditionEl.value = 'all';
+            if (filterStockEl) filterStockEl.value = 'all';
+            applyFiltersAndRender();
+            showToast("Showing all products", "info");
+        });
+    }
+
+    if (cardTotalStock) {
+        cardTotalStock.addEventListener('click', () => {
+            searchInput.value = '';
+            if (filterConditionEl) filterConditionEl.value = 'all';
+            if (filterStockEl) filterStockEl.value = 'all';
+            applyFiltersAndRender();
+            showToast("Showing all products", "info");
+        });
+    }
+
+    if (cardLowStock) {
+        cardLowStock.addEventListener('click', () => {
+            searchInput.value = '';
+            if (filterConditionEl) filterConditionEl.value = 'all';
+            if (filterStockEl) filterStockEl.value = 'low';
+            applyFiltersAndRender();
+            showToast("Filtering to show: Low Stock items", "info");
+        });
+    }
+
     // Sorting Headers Click Event
     sortableHeaders.forEach(header => {
         header.addEventListener('click', () => {

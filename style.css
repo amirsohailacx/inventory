@@ -1618,6 +1618,7 @@ body:not(.light-theme) .main-content {
 .stats-grid .stat-card {
     transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
     border-left: 4px solid var(--border-color);
+    cursor: pointer;
 }
 
 .stats-grid .stat-card:hover {
