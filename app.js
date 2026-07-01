@@ -2082,12 +2082,15 @@ function renderDispatchesTable() {
     const logs = [...dispatchesData].reverse();
     
     const filteredLogs = logs.filter(log => {
-        return (
-            (log["Catalogue Number"] && log["Catalogue Number"].toString().toLowerCase().includes(searchVal)) ||
-            (log["Customer"] && log["Customer"].toString().toLowerCase().includes(searchVal)) ||
-            (log["Dispatch Date"] && log["Dispatch Date"].toString().toLowerCase().includes(searchVal)) ||
-            (log["Tracking Details"] && log["Tracking Details"].toString().toLowerCase().includes(searchVal))
-        );
+        if (!searchVal) return true;
+        for (let key in log) {
+            if (log[key] !== null && log[key] !== undefined) {
+                if (log[key].toString().toLowerCase().includes(searchVal)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     });
     
     if (totalCountEl) totalCountEl.textContent = filteredLogs.length;
