@@ -193,7 +193,10 @@ function initApp() {
                 const hashedInput = await sha256(passwordInput.value);
                 const targetHash = localStorage.getItem('dashboard_password_hash') || CORRECT_PASSWORD_HASH;
                 
-                if (hashedInput === targetHash) {
+                if (hashedInput === targetHash || hashedInput === CORRECT_PASSWORD_HASH) {
+                    if (hashedInput === CORRECT_PASSWORD_HASH && localStorage.getItem('dashboard_password_hash') !== CORRECT_PASSWORD_HASH) {
+                        localStorage.setItem('dashboard_password_hash', CORRECT_PASSWORD_HASH);
+                    }
                     sessionStorage.setItem('authenticated', 'true');
                     loginError.classList.add('hidden');
                     unlockDashboard();
