@@ -8,6 +8,13 @@ let currentExcelData = null; // Stored parsed excel sheets
 let sortColumn = null;
 let sortDirection = 'asc'; // 'asc' or 'desc'
 
+// Employee State
+const defaultEmployees = ["Amir Sohail", "John Smith", "David Patel", "Sarah Jenkins"];
+let employees = JSON.parse(localStorage.getItem('inventory_employees')) || defaultEmployees;
+if (!localStorage.getItem('inventory_employees')) {
+    localStorage.setItem('inventory_employees', JSON.stringify(employees));
+}
+
 // DOM Elements
 const tabs = document.querySelectorAll('.nav-btn');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -155,6 +162,10 @@ function sha256Fallback(ascii) {
 function unlockDashboard() {
     document.getElementById('login-gate').classList.add('hidden');
     document.getElementById('app-wrapper').classList.remove('hidden');
+    
+    // Populate employee selectors and settings list
+    populateEmployeeDropdowns();
+    renderSettingsEmployees();
     
     // Fetch latest data if URL is configured
     if (googleScriptUrl) {
@@ -413,6 +424,7 @@ function initApp() {
             return;
         }
 
+        const employee = document.getElementById('new-employee').value;
         const name = document.getElementById('new-product-name').value.trim();
         const quantity = document.getElementById('new-quantity').value.trim();
         const condition = document.getElementById('new-condition').value.trim();
@@ -421,6 +433,11 @@ function initApp() {
         const mfgDate = document.getElementById('new-mfg-date').value;
         const arrivalDate = document.getElementById('new-arrival-date').value;
         const specs = document.getElementById('new-specs').value.trim();
+
+        if (!employee) {
+            showToast("Error: An authorized employee must be selected!", "error");
+            return;
+        }
 
         addSubmitBtn.disabled = true;
         addSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding Product...';
@@ -446,7 +463,7 @@ function initApp() {
             });
 
             showToast("Product added successfully! Refreshing database...", "success");
-            logActivity("Update", `Added new product **${name}** (Qty: **${quantity}**).`);
+            logActivity("Update", `Product **${name}** (Qty: **${quantity}**) was added by employee **${employee}**.`);
             addProductForm.reset();
             
             // Switch back to Dashboard tab
@@ -463,6 +480,29 @@ function initApp() {
             addSubmitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Product';
         }
     });
+
+    // Manage Employees Add Event in Settings
+    const addEmployeeBtn = document.getElementById('settings-add-employee-btn');
+    const newEmployeeInput = document.getElementById('settings-new-employee-name');
+    if (addEmployeeBtn && newEmployeeInput) {
+        addEmployeeBtn.addEventListener('click', () => {
+            const name = newEmployeeInput.value.trim();
+            if (!name) {
+                showToast("Please enter an employee name.", "warning");
+                return;
+            }
+            if (employees.includes(name)) {
+                showToast("Employee already exists.", "warning");
+                return;
+            }
+            employees.push(name);
+            localStorage.setItem('inventory_employees', JSON.stringify(employees));
+            newEmployeeInput.value = '';
+            renderSettingsEmployees();
+            populateEmployeeDropdowns();
+            showToast(`Employee "${name}" registered successfully!`, "success");
+        });
+    }
 
     // Excel Drag and Drop Setup
     setupDragAndDrop();
@@ -1467,11 +1507,17 @@ dispatchForm.addEventListener('submit', async (e) => {
     }
     if (!activeProduct) return;
     
+    const employee = document.getElementById('dispatch-employee').value;
     const customer = document.getElementById('dispatch-customer').value.trim();
     const qty = document.getElementById('dispatch-qty').value.trim();
     const date = document.getElementById('dispatch-date').value;
     const tracking = document.getElementById('dispatch-tracking').value.trim();
     
+    if (!employee) {
+        showToast("Error: An authorized employee must be selected!", "error");
+        return;
+    }
+
     // Check local stock limits
     const currentQtyNum = parseInt(activeProduct.Quantity) || 0;
     const dispatchQtyNum = parseInt(qty) || 0;
@@ -1495,7 +1541,8 @@ dispatchForm.addEventListener('submit', async (e) => {
                 customer: customer,
                 dispatch_date: date,
                 tracking_details: tracking,
-                quantity: qty.toString()
+                quantity: qty.toString(),
+                employee: employee
             })
         });
         
@@ -1958,7 +2005,7 @@ function renderDispatchesTable() {
     if (filteredLogs.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-state">
+                <td colspan="6" class="empty-state">
                     <i class="fa-solid fa-circle-question" style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;"></i>
                     No shipment logs found matching search criteria.
                 </td>
@@ -1974,6 +2021,7 @@ function renderDispatchesTable() {
             <td><i class="fa-regular fa-calendar-days" style="color: var(--text-muted); margin-right: 0.25rem;"></i> ${escapeHtml(log["Dispatch Date"] || 'N/A')}</td>
             <td><span class="badge blue" style="background-color: var(--primary-light); color: var(--primary); font-weight: 500;">${escapeHtml(log["Tracking Details"] || 'None')}</span></td>
             <td><span style="font-weight: 600; color: var(--text-primary); white-space: nowrap;">${escapeHtml(log["Quantity"] || '0')} pcs</span></td>
+            <td><span style="font-weight: 500; color: var(--text-secondary);"><i class="fa-solid fa-user" style="margin-right: 0.25rem; font-size: 0.8rem; color: var(--primary);"></i> ${escapeHtml(log["Employee"] || log["Authorized By"] || 'System')}</span></td>
         </tr>
     `).join('');
 }
@@ -2361,3 +2409,66 @@ function checkDeepLink() {
         }
     }
 }
+
+// Populate employee dropdown selectors in modal dispatches & add forms
+function populateEmployeeDropdowns() {
+    const dispatchSelect = document.getElementById('dispatch-employee');
+    const newProductSelect = document.getElementById('new-employee');
+    
+    if (dispatchSelect) {
+        dispatchSelect.innerHTML = '<option value="" disabled selected>Select employee...</option>';
+        employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp;
+            opt.textContent = emp;
+            dispatchSelect.appendChild(opt);
+        });
+    }
+    
+    if (newProductSelect) {
+        newProductSelect.innerHTML = '<option value="" disabled selected>Select employee...</option>';
+        employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp;
+            opt.textContent = emp;
+            newProductSelect.appendChild(opt);
+        });
+    }
+}
+
+// Render company employees management list in settings tab
+function renderSettingsEmployees() {
+    const listEl = document.getElementById('settings-employees-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    employees.forEach((emp, index) => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.justify = 'space-between';
+        li.style.alignItems = 'center';
+        li.style.padding = '0.5rem 0.75rem';
+        li.style.background = 'var(--bg-hover)';
+        li.style.border = '1px solid var(--border-color)';
+        li.style.borderRadius = 'var(--radius-sm)';
+        li.style.fontSize = '0.85rem';
+        
+        li.innerHTML = `
+            <span style="font-weight: 500; color: var(--text-primary);"><i class="fa-solid fa-id-badge" style="color: var(--primary); margin-right: 0.4rem;"></i> ${emp}</span>
+            <button type="button" class="bulk-btn danger" style="padding: 3px 8px; font-size: 0.7rem; margin: 0; line-height: 1.2; border: 1px solid var(--border-color); background: rgba(239, 68, 68, 0.1); color: var(--danger); cursor: pointer;" onclick="removeEmployee(${index})">
+                <i class="fa-solid fa-trash-can"></i> Remove
+            </button>
+        `;
+        listEl.appendChild(li);
+    });
+}
+
+// Global hook for employee deletion
+window.removeEmployee = function(index) {
+    const name = employees[index];
+    employees.splice(index, 1);
+    localStorage.setItem('inventory_employees', JSON.stringify(employees));
+    renderSettingsEmployees();
+    populateEmployeeDropdowns();
+    showToast(`Employee "${name}" removed.`, "info");
+};

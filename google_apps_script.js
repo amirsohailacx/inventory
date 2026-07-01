@@ -18,7 +18,7 @@ function doGet(e) {
     var dispatchesSheet = activeSpreadsheet.getSheetByName("Dispatches");
     if (!dispatchesSheet) {
       dispatchesSheet = activeSpreadsheet.insertSheet("Dispatches");
-      dispatchesSheet.appendRow(["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity"]);
+      dispatchesSheet.appendRow(["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity", "Employee"]);
     }
     
     // 1. Fetch Inventory Data
@@ -75,7 +75,7 @@ function doPost(e) {
     
     if (!dispatchesSheet) {
       dispatchesSheet = activeSpreadsheet.insertSheet("Dispatches");
-      dispatchesSheet.appendRow(["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity"]);
+      dispatchesSheet.appendRow(["Catalogue Number", "Customer", "Dispatch Date", "Tracking Details", "Quantity", "Employee"]);
     }
     
     var params = JSON.parse(e.postData.contents);
@@ -208,7 +208,8 @@ function doPost(e) {
         params.customer || "",
         params.dispatch_date || "",
         params.tracking_details || "",
-        params.quantity || "0"
+        params.quantity || "0",
+        params.employee || ""
       ]);
       
       // 2. Adjust Stock Level in Inventory Sheet
