@@ -219,7 +219,7 @@
                     <p class="section-desc">Fill in the fields below to add a new product. It will be added instantly to your Google Sheet.</p>
                     <form id="add-product-form" class="inventory-form">
                         <div class="form-group">
-                            <label for="new-employee">Authorized Employee <span class="required">*</span></label>
+                            <label for="new-employee">Authorised Employee <span class="required">*</span></label>
                             <select id="new-employee" required style="width: 100%; height: 38px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); padding: 0 0.75rem; outline: none;">
                                 <option value="" disabled selected>Select employee...</option>
                             </select>
@@ -364,7 +364,7 @@
                                     <th>Dispatch Date</th>
                                     <th>Tracking / Delivery Details</th>
                                     <th>Quantity Shipped</th>
-                                    <th>Authorized Employee</th>
+                                    <th>Authorised Employee</th>
                                 </tr>
                             </thead>
                             <tbody id="dispatches-tbody">
@@ -421,7 +421,7 @@
 
                     <div class="settings-card" style="margin-top: 1.5rem;">
                         <h3>2. Manage Company Employees</h3>
-                        <p class="settings-help" style="margin-bottom: 1rem;">Add or remove authorized warehouse employees who can perform inventory dispatches and arrivals.</p>
+                        <p class="settings-help" style="margin-bottom: 1rem;">Add or remove authorised warehouse employees who can perform inventory dispatches and arrivals.</p>
                         <div class="form-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                             <input type="text" id="settings-new-employee-name" placeholder="Employee Name (e.g. John Doe)" style="flex: 1; height: 38px; padding: 0 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); outline: none;">
                             <button type="button" id="settings-add-employee-btn" class="submit-btn" style="width: auto; padding: 0 1.25rem; height: 38px; margin: 0;"><i class="fa-solid fa-plus"></i> Add</button>
@@ -456,7 +456,7 @@
                             <li>Change description to: "Inventory API".</li>
                             <li>Set <strong>Execute as:</strong> "Me (your-email)".</li>
                             <li>Set <strong>Who has access:</strong> "Anyone".</li>
-                            <li>Click <strong>Deploy</strong>. Authorize the script if prompted.</li>
+                            <li>Click <strong>Deploy</strong>. Authorise the script if prompted.</li>
                             <li>Copy the <strong>Web app URL</strong> shown, paste it in the field above, and click <strong>Save & Connect</strong>!</li>
                         </ol>
                     </div>
@@ -558,7 +558,7 @@
                             <h3>Ship Item (Adjust Stock)</h3>
                             <form id="dispatch-form" class="inventory-form">
                                 <div class="form-group">
-                                    <label for="dispatch-employee">Authorized Employee <span class="required">*</span></label>
+                                    <label for="dispatch-employee">Authorised Employee <span class="required">*</span></label>
                                     <select id="dispatch-employee" required style="width: 100%; height: 38px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); padding: 0 0.75rem; outline: none;">
                                         <option value="" disabled selected>Select employee...</option>
                                     </select>

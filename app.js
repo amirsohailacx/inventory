@@ -435,7 +435,7 @@ function initApp() {
         const specs = document.getElementById('new-specs').value.trim();
 
         if (!employee) {
-            showToast("Error: An authorized employee must be selected!", "error");
+            showToast("Error: An authorised employee must be selected!", "error");
             return;
         }
 
@@ -1514,7 +1514,7 @@ dispatchForm.addEventListener('submit', async (e) => {
     const tracking = document.getElementById('dispatch-tracking').value.trim();
     
     if (!employee) {
-        showToast("Error: An authorized employee must be selected!", "error");
+        showToast("Error: An authorised employee must be selected!", "error");
         return;
     }
 
@@ -2021,7 +2021,7 @@ function renderDispatchesTable() {
             <td><i class="fa-regular fa-calendar-days" style="color: var(--text-muted); margin-right: 0.25rem;"></i> ${escapeHtml(log["Dispatch Date"] || 'N/A')}</td>
             <td><span class="badge blue" style="background-color: var(--primary-light); color: var(--primary); font-weight: 500;">${escapeHtml(log["Tracking Details"] || 'None')}</span></td>
             <td><span style="font-weight: 600; color: var(--text-primary); white-space: nowrap;">${escapeHtml(log["Quantity"] || '0')} pcs</span></td>
-            <td><span style="font-weight: 500; color: var(--text-secondary);"><i class="fa-solid fa-user" style="margin-right: 0.25rem; font-size: 0.8rem; color: var(--primary);"></i> ${escapeHtml(log["Employee"] || log["Authorized By"] || 'System')}</span></td>
+            <td><span style="font-weight: 500; color: var(--text-secondary);"><i class="fa-solid fa-user" style="margin-right: 0.25rem; font-size: 0.8rem; color: var(--primary);"></i> ${escapeHtml(log["Employee"] || log["Authorised By"] || log["Authorized By"] || 'System')}</span></td>
         </tr>
     `).join('');
 }
@@ -2258,7 +2258,7 @@ function generateAndPrintPackingSlip(items) {
                 <div style="text-align: right;">
                     <strong>Source Location:</strong> ACX Instruments Warehouse<br/>
                     <strong>Audited By:</strong> Warehouse Management Dashboard<br/>
-                    <strong>Authorized Signature Required</strong>
+                    <strong>Authorised Signature Required</strong>
                 </div>
             </div>
             
@@ -2280,7 +2280,7 @@ function generateAndPrintPackingSlip(items) {
             
             <div class="print-slip-signatures">
                 <div class="sig-line">
-                    Authorized Sign-off / Dispatcher
+                    Authorised Sign-off / Dispatcher
                 </div>
                 <div class="sig-line">
                     Received By / Consignee
