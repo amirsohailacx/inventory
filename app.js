@@ -2105,7 +2105,7 @@ function renderDispatchesTable() {
     }
     
     tbody.innerHTML = filteredLogs.map(log => `
-        <tr>
+        <tr class="dispatch-row clickable-row" data-cat="${escapeHtml(log["Catalogue Number"] || '')}" style="cursor: pointer;">
             <td><strong>${escapeHtml(log["Catalogue Number"] || 'N/A')}</strong></td>
             <td>${escapeHtml(log["Customer"] || 'N/A')}</td>
             <td><i class="fa-regular fa-calendar-days" style="color: var(--text-muted); margin-right: 0.25rem;"></i> ${escapeHtml(log["Dispatch Date"] || 'N/A')}</td>
@@ -2114,6 +2114,21 @@ function renderDispatchesTable() {
             <td><span style="font-weight: 500; color: var(--text-secondary);"><i class="fa-solid fa-user" style="margin-right: 0.25rem; font-size: 0.8rem; color: var(--primary);"></i> ${escapeHtml(log["Employee"] || log["Authorised By"] || log["Authorized By"] || 'System')}</span></td>
         </tr>
     `).join('');
+
+    // Bind click events to dispatches rows to open product modal
+    const dispatchRows = tbody.querySelectorAll('.dispatch-row');
+    dispatchRows.forEach(row => {
+        row.addEventListener('click', () => {
+            const cat = row.dataset.cat;
+            if (!cat) return;
+            const item = inventoryData.find(i => i["Catalogue Number"] && i["Catalogue Number"].toString().trim() === cat.trim());
+            if (item) {
+                openProductModal(item);
+            } else {
+                showToast("Cannot find corresponding product in active inventory.", "warning");
+            }
+        });
+    });
 }
 
 function exportDispatchesToCSV() {
